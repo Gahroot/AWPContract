@@ -1,0 +1,277 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  SALESMAN
+}
+
+enum ContractStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  SIGNED
+  COMPLETED
+}
+
+// ─── Auth.js Models ───────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          Role      @default(SALESMAN)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  contracts Contract[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ─── Contract Models ──────────────────────────────────────────
+
+model Contract {
+  id               String         @id @default(cuid())
+  contractNumber   String         @unique @default(cuid())
+  status           ContractStatus @default(DRAFT)
+  accessToken      String         @unique @default(cuid())
+
+  // Customer Info
+  customerName     String?
+  customerPhone    String?
+  customerPhoneAlt String?
+  customerEmail    String?
+  jobAddress       String?
+  billingAddress   String?
+  customerCity     String?
+  customerZip      String?
+
+  // Job Details
+  salesman         String?
+  measurementDate  DateTime?
+  leadTest         String?
+  yearBuilt        String?
+  houseType        String?
+
+  // Pricing
+  total            Float          @default(0)
+  discount         Float          @default(0)
+  contractTotal    Float          @default(0)
+  downPayment      Float          @default(0)
+  balanceDue       Float          @default(0)
+  financeBalance   Float          @default(0)
+  wfebAccount      String?
+
+  // Marketing
+  planNumber       String?
+  authNumber       String?
+  marketingSource  Json?
+
+  // Payment
+  paymentMethod    String?
+
+  // Notes
+  measurementNotes String?
+
+  // Signatures
+  contractorSignature     String?  @db.Text
+  contractorSignatureDate DateTime?
+  customerSignature       String?  @db.Text
+  customerSignatureDate   DateTime?
+  authorizedSignature     String?  @db.Text
+  authorizedSignatureDate DateTime?
+
+  // HubSpot
+  hubspotContactId String?
+  hubspotDealId    String?
+
+  // PDF
+  pdfUrl           String?
+
+  // Relations
+  userId       String?
+  user         User?         @relation(fields: [userId], references: [id])
+  lineItems    LineItem[]
+  addendums    Addendum[]
+  changeOrders ChangeOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([userId])
+  @@index([accessToken])
+}
+
+model LineItem {
+  id         String @id @default(cuid())
+  contractId String
+
+  location      String?
+  type          String   @default("Window")
+  qty           Int      @default(1)
+  width         Float    @default(0)
+  height        Float    @default(0)
+  color         String   @default("White")
+  series        String   @default("Patriot")
+  frame         String   @default("Nail Fin")
+  function      String   @default("Slider")
+
+  // Boolean addons
+  temperedGlass  Boolean @default(false)
+  obscuredGlass  Boolean @default(false)
+  customShape    Boolean @default(false)
+  wrap           Boolean @default(false)
+  coated         Boolean @default(false)
+  awpShutterRnr  Boolean @default(false)
+
+  // Calculated price
+  price     Float @default(0)
+  sortOrder Int   @default(0)
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+}
+
+model Addendum {
+  id         String @id @default(cuid())
+  contractId String
+
+  // Products (stored as JSON array of product objects)
+  products Json?
+
+  // Colors
+  interiorColor   String?
+  exteriorColor   String?
+  colorDescription String?
+
+  // Installation checklist
+  installRemoveOld    Boolean @default(false)
+  installHaulAway     Boolean @default(false)
+  installInteriorTrim Boolean @default(false)
+  installExteriorTrim Boolean @default(false)
+  installCaulkSeal    Boolean @default(false)
+  installScreens      Boolean @default(false)
+  installHardware     Boolean @default(false)
+  installWeatherstrip Boolean @default(false)
+  installCleanup      Boolean @default(false)
+  installOther        Boolean @default(false)
+  installNotes        String?
+
+  // Acknowledgements
+  ackMeasurements    Boolean @default(false)
+  ackSpecifications  Boolean @default(false)
+  ackPricing         Boolean @default(false)
+  ackTerms           Boolean @default(false)
+  ackInitials        String?
+
+  // Referral
+  referralName  String?
+  referralPhone String?
+
+  // Notes
+  notes String?
+
+  // Signatures
+  customerSignature     String?  @db.Text
+  customerSignatureDate DateTime?
+  contractorSignature   String?  @db.Text
+  contractorSignatureDate DateTime?
+
+  pdfUrl String?
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contractId])
+}
+
+model ChangeOrder {
+  id              String @id @default(cuid())
+  contractId      String
+  changeOrderNumber String @unique @default(cuid())
+
+  // Change details
+  changesDescription String?
+  priceChangeType    String   @default("no_change")  // no_change, increase, decrease
+  priceChangeAmount  Float    @default(0)
+
+  // Calculated
+  originalPrice   Float @default(0)
+  newPrice        Float @default(0)
+  newBalanceDue   Float @default(0)
+
+  // Signatures
+  customerSignature     String?  @db.Text
+  customerSignatureDate DateTime?
+  awpSignature          String?  @db.Text
+  awpSignatureDate      DateTime?
+
+  pdfUrl String?
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contractId])
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String @db.Text
+
+  @@index([key])
+}
