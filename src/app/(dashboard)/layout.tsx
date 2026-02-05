@@ -14,7 +14,7 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,8 +79,8 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col border-r bg-background">
+      {/* Desktop sidebar - hidden on mobile and tablet */}
+      <aside className="hidden 2xl:flex 2xl:w-64 2xl:flex-col border-r bg-background">
         <Sidebar />
       </aside>
 
@@ -90,11 +90,12 @@ export default function DashboardLayout({
           <div className="flex items-center gap-2">
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button variant="ghost" size="icon" className="2xl:hidden">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-64">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <Sidebar onNavigate={() => setSheetOpen(false)} />
               </SheetContent>
             </Sheet>

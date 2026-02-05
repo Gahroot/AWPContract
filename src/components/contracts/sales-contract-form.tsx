@@ -381,7 +381,7 @@ export function SalesContractForm({
                 <Label htmlFor="leadTest">Lead Test</Label>
                 <Switch
                   id="leadTest"
-                  checked={watch("leadTest") === "Yes" || watch("leadTest") === true}
+                  checked={watch("leadTest") === "Yes"}
                   onCheckedChange={(checked) =>
                     setValue("leadTest", checked ? "Yes" : "", { shouldDirty: true })
                   }
