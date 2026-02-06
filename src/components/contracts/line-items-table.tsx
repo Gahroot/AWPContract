@@ -316,6 +316,7 @@ function LineItemRow({
           className="h-8 w-8"
           disabled={!canRemove}
           onClick={onRemove}
+          aria-label="Remove line item"
         >
           <Trash2 className="h-4 w-4 text-destructive" />
         </Button>

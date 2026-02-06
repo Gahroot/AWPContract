@@ -186,7 +186,7 @@ export function ChangeOrderForm({ contract }: ChangeOrderFormProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">New Balance Due</span>
-              <span className="font-bold text-lg text-primary">
+              <span className="font-bold text-lg text-awp-orange-text">
                 {formatCurrency(newBalanceDue)}
               </span>
             </div>

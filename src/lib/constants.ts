@@ -110,9 +110,9 @@ export const FORM_OPTIONS = {
 
 export const CONTRACT_STATUSES = {
   DRAFT: { label: "Draft", color: "secondary" },
-  PENDING_SIGNATURE: { label: "Pending Signature", color: "default" },
+  PENDING_SIGNATURE: { label: "Pending Signature", color: "highlight" },
   SIGNED: { label: "Signed", color: "outline" },
-  COMPLETED: { label: "Completed", color: "destructive" },
+  COMPLETED: { label: "Completed", color: "success" },
 } as const;
 
 export const BOOLEAN_ADDON_LABELS: Record<string, string> = {

@@ -105,7 +105,7 @@ export default function ContractSignPage() {
   if (submitted) {
     return (
       <div className="max-w-2xl mx-auto p-6 text-center py-20 space-y-4">
-        <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+        <CheckCircle className="h-16 w-16 text-awp-blue mx-auto" />
         <h1 className="text-2xl font-bold">Thank You!</h1>
         <p className="text-muted-foreground">
           Your contract has been signed successfully. You will receive a
@@ -154,7 +154,7 @@ export default function ContractSignPage() {
           </div>
           <div className="flex justify-between font-bold text-lg">
             <span>Balance Due</span>
-            <span>{formatCurrency(contract.balanceDue)}</span>
+            <span className="text-awp-orange-text">{formatCurrency(contract.balanceDue)}</span>
           </div>
         </CardContent>
       </Card>
@@ -202,7 +202,7 @@ export default function ContractSignPage() {
           size="lg"
           onClick={handleSign}
           disabled={submitting || !signature}
-          className="w-full max-w-sm"
+          className="w-full max-w-sm bg-awp-blue hover:bg-awp-blue/90"
         >
           {submitting ? (
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />

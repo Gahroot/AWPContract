@@ -39,6 +39,7 @@ export function SignaturePad({
 
   const handleDrawEnd = useCallback(() => {
     if (canvasRef.current && !canvasRef.current.isEmpty()) {
+      initialLoadRef.current = true;
       const dataUrl = canvasRef.current.getTrimmedCanvas().toDataURL("image/png");
       onChange(dataUrl);
       setHasSignature(true);

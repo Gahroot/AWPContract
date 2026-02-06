@@ -219,6 +219,7 @@ export function AddendumForm({ contract }: AddendumFormProps) {
                     variant="ghost"
                     size="icon"
                     onClick={() => remove(index)}
+                    aria-label="Remove product"
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>

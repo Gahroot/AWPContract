@@ -89,83 +89,101 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { lineItems, ...contractData } = body;
-
-  // Calculate pricing server-side
-  let total = 0;
-  const processedItems = (lineItems || []).map(
-    (item: LineItemInput & { location?: string; sortOrder?: number; type?: string }, index: number) => {
-      const price = calculateLineItem(item);
-      total += price;
-      return {
-        location: item.location || "",
-        type: item.type || "Window",
-        qty: item.qty || 1,
-        width: item.width || 0,
-        height: item.height || 0,
-        color: item.color || "White",
-        series: item.series || "Patriot",
-        frame: item.frame || "Nail Fin",
-        function: item.function || "Slider",
-        temperedGlass: item.temperedGlass || false,
-        obscuredGlass: item.obscuredGlass || false,
-        customShape: item.customShape || false,
-        wrap: item.wrap || false,
-        coated: item.coated || false,
-        awpShutterRnr: item.awpShutterRnr || false,
-        price,
-        sortOrder: item.sortOrder ?? index,
-      };
+  try {
+    // Verify user exists (prevents FK violation after DB reset with stale JWT)
+    const userExists = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    });
+    if (!userExists) {
+      return NextResponse.json(
+        { error: "Session expired. Please log out and log back in." },
+        { status: 401 }
+      );
     }
-  );
 
-  const discount = parseFloat(contractData.discount) || 0;
-  const downPayment = parseFloat(contractData.downPayment) || 0;
-  const contractTotal = calculateContractTotal(total, discount);
-  const balanceDue = calculateBalanceDue(contractTotal, downPayment);
+    const body = await req.json();
+    const { lineItems, ...contractData } = body;
 
-  const contract = await db.contract.create({
-    data: {
-      customerName: contractData.customerName || null,
-      customerPhone: contractData.customerPhone || null,
-      customerPhoneAlt: contractData.customerPhoneAlt || null,
-      customerEmail: contractData.customerEmail || null,
-      jobAddress: contractData.jobAddress || null,
-      billingAddress: contractData.billingAddress || null,
-      customerCity: contractData.customerCity || null,
-      customerZip: contractData.customerZip || null,
-      salesman: contractData.salesman || null,
-      measurementDate: contractData.measurementDate
-        ? new Date(contractData.measurementDate)
-        : null,
-      leadTest: contractData.leadTest || null,
-      yearBuilt: contractData.yearBuilt || null,
-      houseType: contractData.houseType || null,
-      total,
-      discount,
-      contractTotal,
-      downPayment,
-      balanceDue,
-      financeBalance: parseFloat(contractData.financeBalance) || 0,
-      wfebAccount: contractData.wfebAccount || null,
-      planNumber: contractData.planNumber || null,
-      authNumber: contractData.authNumber || null,
-      marketingSource: contractData.marketingSource || null,
-      paymentMethod: contractData.paymentMethod || null,
-      measurementNotes: contractData.measurementNotes || null,
-      contractorSignature: contractData.contractorSignature || null,
-      contractorSignatureDate: contractData.contractorSignatureDate
-        ? new Date(contractData.contractorSignatureDate)
-        : null,
-      status: "DRAFT",
-      userId: session.user.id,
-      lineItems: {
-        create: processedItems,
+    // Calculate pricing server-side
+    let total = 0;
+    const processedItems = (lineItems || []).map(
+      (item: LineItemInput & { location?: string; sortOrder?: number; type?: string }, index: number) => {
+        const price = calculateLineItem(item);
+        total += price;
+        return {
+          location: item.location || "",
+          type: item.type || "Window",
+          qty: item.qty || 1,
+          width: item.width || 0,
+          height: item.height || 0,
+          color: item.color || "White",
+          series: item.series || "Patriot",
+          frame: item.frame || "Nail Fin",
+          function: item.function || "Slider",
+          temperedGlass: item.temperedGlass || false,
+          obscuredGlass: item.obscuredGlass || false,
+          customShape: item.customShape || false,
+          wrap: item.wrap || false,
+          coated: item.coated || false,
+          awpShutterRnr: item.awpShutterRnr || false,
+          price,
+          sortOrder: item.sortOrder ?? index,
+        };
+      }
+    );
+
+    const discount = parseFloat(contractData.discount) || 0;
+    const downPayment = parseFloat(contractData.downPayment) || 0;
+    const contractTotal = calculateContractTotal(total, discount);
+    const balanceDue = calculateBalanceDue(contractTotal, downPayment);
+
+    const contract = await db.contract.create({
+      data: {
+        customerName: contractData.customerName || null,
+        customerPhone: contractData.customerPhone || null,
+        customerPhoneAlt: contractData.customerPhoneAlt || null,
+        customerEmail: contractData.customerEmail || null,
+        jobAddress: contractData.jobAddress || null,
+        billingAddress: contractData.billingAddress || null,
+        customerCity: contractData.customerCity || null,
+        customerZip: contractData.customerZip || null,
+        salesman: contractData.salesman || null,
+        measurementDate: contractData.measurementDate
+          ? new Date(contractData.measurementDate)
+          : null,
+        leadTest: contractData.leadTest || null,
+        yearBuilt: contractData.yearBuilt || null,
+        houseType: contractData.houseType || null,
+        total,
+        discount,
+        contractTotal,
+        downPayment,
+        balanceDue,
+        financeBalance: parseFloat(contractData.financeBalance) || 0,
+        wfebAccount: contractData.wfebAccount || null,
+        planNumber: contractData.planNumber || null,
+        authNumber: contractData.authNumber || null,
+        marketingSource: contractData.marketingSource || null,
+        paymentMethod: contractData.paymentMethod || null,
+        measurementNotes: contractData.measurementNotes || null,
+        contractorSignature: contractData.contractorSignature || null,
+        contractorSignatureDate: contractData.contractorSignatureDate
+          ? new Date(contractData.contractorSignatureDate)
+          : null,
+        status: "DRAFT",
+        userId: session.user.id,
+        lineItems: {
+          create: processedItems,
+        },
       },
-    },
-    include: { lineItems: true },
-  });
+      include: { lineItems: true },
+    });
 
-  return NextResponse.json(contract, { status: 201 });
+    return NextResponse.json(contract, { status: 201 });
+  } catch (error) {
+    console.error("Failed to create contract:", error);
+    const message = error instanceof Error ? error.message : "Failed to create contract";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

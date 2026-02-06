@@ -37,6 +37,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-awp-blue: var(--awp-blue);
+  --color-awp-blue-light: var(--awp-blue-light);
+  --color-awp-orange: var(--awp-orange);
+  --color-awp-orange-text: var(--awp-orange-text);
+  --color-awp-orange-light: var(--awp-orange-light);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -73,12 +78,18 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: #174881;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: #174881;
+  /* AWP brand colors */
+  --awp-blue: #174881;
+  --awp-blue-light: #e8eff7;
+  --awp-orange: #F69139;
+  --awp-orange-text: #b45309;
+  --awp-orange-light: #fef3e7;
 }
 
 .dark {
@@ -107,12 +118,18 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: #1d5a9e;
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: #174881;
+  /* AWP brand colors (dark mode) */
+  --awp-blue: #1d5a9e;
+  --awp-blue-light: #1e3a5c;
+  --awp-orange: #F69139;
+  --awp-orange-text: #F69139;
+  --awp-orange-light: #3d2a14;
 }
 
 @layer base {

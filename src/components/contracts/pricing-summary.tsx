@@ -2,6 +2,7 @@
 
 import { useFormContext, useWatch } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { CurrencyInput } from "@/components/shared/currency-input";
@@ -76,7 +77,7 @@ export function PricingSummary() {
 
         <div className="flex justify-between items-center">
           <span className="font-medium">Balance Due</span>
-          <span className="text-xl font-bold text-primary">
+          <span className="text-xl font-bold text-awp-orange-text">
             {formatCurrency(balanceDue)}
           </span>
         </div>
@@ -93,10 +94,10 @@ export function PricingSummary() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Label className="w-28 shrink-0">WFEB Account</Label>
-          <input
+          <Label htmlFor="wfebAccount" className="w-28 shrink-0">WFEB Account</Label>
+          <Input
+            id="wfebAccount"
             {...register("wfebAccount")}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             placeholder="Account #"
           />
         </div>

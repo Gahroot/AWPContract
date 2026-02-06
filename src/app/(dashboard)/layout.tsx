@@ -55,8 +55,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-muted-foreground hover:bg-awp-blue-light hover:text-awp-blue"
               )}
             >
               <Icon className="h-4 w-4" />
@@ -90,7 +90,7 @@ export default function DashboardLayout({
           <div className="flex items-center gap-2">
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="2xl:hidden">
+                <Button variant="ghost" size="icon" className="2xl:hidden" aria-label="Open navigation menu">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>

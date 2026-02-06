@@ -166,7 +166,7 @@ function DashboardContent() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Pending
             </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-awp-orange-text" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -183,7 +183,7 @@ function DashboardContent() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Completed
             </CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle className="h-4 w-4 text-awp-blue" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -215,7 +215,7 @@ function DashboardContent() {
               </TabsList>
             </Tabs>
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <Input
                 placeholder="Search contracts..."
                 value={search}
@@ -266,7 +266,7 @@ function DashboardContent() {
                     <TableCell className="font-medium">
                       <Link
                         href={`/contracts/${c.id}/edit`}
-                        className="hover:underline"
+                        className="text-awp-blue hover:underline"
                       >
                         {c.contractNumber.slice(0, 8)}...
                       </Link>
@@ -287,7 +287,7 @@ function DashboardContent() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Contract options">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -331,6 +331,7 @@ function DashboardContent() {
                   size="sm"
                   disabled={page <= 1}
                   onClick={() => updateParams({ page: String(page - 1) })}
+                  aria-label="Previous page"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -339,6 +340,7 @@ function DashboardContent() {
                   size="sm"
                   disabled={page >= totalPages}
                   onClick={() => updateParams({ page: String(page + 1) })}
+                  aria-label="Next page"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>

@@ -99,7 +99,7 @@ function LoginForm() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full bg-awp-blue hover:bg-awp-blue/90" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>

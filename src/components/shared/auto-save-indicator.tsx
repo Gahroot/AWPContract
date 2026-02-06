@@ -23,7 +23,7 @@ export function AutoSaveIndicator({
 
   if (lastSaved) {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-xs text-awp-blue">
         <Cloud className="h-3 w-3" />
         <span>
           Saved {formatDistanceToNow(lastSaved, { addSuffix: true })}

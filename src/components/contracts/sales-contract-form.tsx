@@ -172,7 +172,8 @@ export function SalesContractForm({
         if (res.ok) {
           toast.success("Draft saved");
         } else {
-          toast.error("Failed to save draft");
+          const err = await res.json().catch(() => ({}));
+          toast.error(err.error || "Failed to save draft");
         }
       } else {
         const res = await fetch("/api/contracts", {
@@ -186,7 +187,8 @@ export function SalesContractForm({
           toast.success("Contract created");
           router.replace(`/contracts/${contract.id}/edit`);
         } else {
-          toast.error("Failed to create contract");
+          const err = await res.json().catch(() => ({}));
+          toast.error(err.error || "Failed to create contract");
         }
       }
     } finally {
@@ -204,32 +206,45 @@ export function SalesContractForm({
       return;
     }
 
-    // Save first if not saved
-    if (!contractId) {
-      const res = await fetch("/api/contracts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        toast.error("Failed to save contract");
-        return;
-      }
-      const contract = await res.json();
-      setContractId(contract.id);
-    }
+    setSubmitting(true);
+    try {
+      // Use local variable to avoid React state timing issue
+      let currentId = contractId;
 
-    // Update status
-    if (contractId) {
-      await fetch(`/api/contracts/${contractId}`, {
+      // Save first if not saved
+      if (!currentId) {
+        const res = await fetch("/api/contracts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          toast.error(err.error || "Failed to save contract");
+          return;
+        }
+        const contract = await res.json();
+        currentId = contract.id;
+        setContractId(contract.id);
+      }
+
+      // Update status using local variable (not stale React state)
+      const res = await fetch(`/api/contracts/${currentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, status: "PENDING_SIGNATURE" }),
       });
-    }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "Failed to update contract status");
+        return;
+      }
 
-    setPhase("customer");
-    toast.success("Ready for customer signature");
+      setPhase("customer");
+      toast.success("Ready for customer signature");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // Submit Contract
@@ -526,7 +541,7 @@ export function SalesContractForm({
             className="space-y-6"
           >
             <Separator />
-            <h2 className="text-xl font-bold text-center">Customer Section</h2>
+            <h2 className="text-xl font-bold text-center text-awp-blue">Customer Section</h2>
 
             {/* Payment Method */}
             <Card>

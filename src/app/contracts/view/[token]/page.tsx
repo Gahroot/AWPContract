@@ -119,7 +119,7 @@ export default function ContractViewPage() {
             Print
           </Button>
           {contract.status === "PENDING_SIGNATURE" && (
-            <Button size="sm" asChild>
+            <Button size="sm" className="bg-awp-blue hover:bg-awp-blue/90" asChild>
               <Link href={`/contracts/sign/${token}`}>
                 <Pen className="h-4 w-4 mr-2" />
                 Sign Contract
@@ -253,7 +253,7 @@ export default function ContractViewPage() {
           )}
           <div className="flex justify-between font-bold text-lg">
             <span>Balance Due</span>
-            <span>{formatCurrency(contract.balanceDue)}</span>
+            <span className="text-awp-orange-text">{formatCurrency(contract.balanceDue)}</span>
           </div>
         </CardContent>
       </Card>
