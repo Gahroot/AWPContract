@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { calculateLineItem, calculateContractTotal, calculateBalanceDue } from "@/lib/pricing";
+import { calculateLineItem, calculateContractTotal, calculateBalanceDue, type LineItemInput } from "@/lib/pricing";
 
 // POST /api/pricing/calculate - Server-side price validation
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { lineItems, discount, downPayment } = body;
 
-  const itemPrices = (lineItems || []).map((item: any) =>
+  const itemPrices = (lineItems || []).map((item: LineItemInput) =>
     calculateLineItem(item)
   );
 

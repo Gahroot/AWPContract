@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { calculateLineItem, calculateContractTotal, calculateBalanceDue } from "@/lib/pricing";
+import { calculateLineItem, calculateContractTotal, calculateBalanceDue, type LineItemInput } from "@/lib/pricing";
 
 // GET /api/contracts/[id]
 export async function GET(
@@ -47,7 +47,7 @@ export async function PATCH(
   // Recalculate pricing
   let total = 0;
   const processedItems = (lineItems || []).map(
-    (item: any, index: number) => {
+    (item: LineItemInput & { location?: string; sortOrder?: number; type?: string }, index: number) => {
       const price = calculateLineItem(item);
       total += price;
       return {

@@ -37,6 +37,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ContractStatusBadge } from "@/components/contracts/contract-status-badge";
 import { formatCurrency } from "@/lib/pricing";
+import { CONTRACT_STATUSES } from "@/lib/constants";
 import { format } from "date-fns";
 
 interface ContractListItem {
@@ -278,7 +279,7 @@ function DashboardContent() {
                       {formatCurrency(c.contractTotal)}
                     </TableCell>
                     <TableCell>
-                      <ContractStatusBadge status={c.status as any} />
+                      <ContractStatusBadge status={c.status as keyof typeof CONTRACT_STATUSES} />
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground">
                       {format(new Date(c.createdAt), "MMM d, yyyy")}

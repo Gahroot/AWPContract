@@ -4,10 +4,13 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { type UseFormWatch } from "react-hook-form";
 import { toast } from "sonner";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFormValues = Record<string, any>;
+
 interface UseAutoSaveOptions {
-  watch: UseFormWatch<any>;
+  watch: UseFormWatch<AnyFormValues>;
   contractId: string | null;
-  onSave: (data: any) => Promise<void>;
+  onSave: (data: AnyFormValues) => Promise<void>;
   debounceMs?: number;
   enabled?: boolean;
 }
@@ -22,7 +25,7 @@ export function useAutoSave({
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const dataRef = useRef<any>(null);
+  const dataRef = useRef<AnyFormValues | null>(null);
 
   const save = useCallback(async () => {
     if (!contractId || !dataRef.current) return;

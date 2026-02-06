@@ -18,7 +18,15 @@ import { Toaster } from "@/components/ui/sonner";
 export default function ContractSignPage() {
   const params = useParams();
   const token = params.token as string;
-  const [contract, setContract] = useState<any>(null);
+  const [contract, setContract] = useState<{
+    status: string;
+    customerName: string;
+    jobAddress: string;
+    contractTotal: number;
+    balanceDue: number;
+    lineItems?: unknown[];
+    error?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [signature, setSignature] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");

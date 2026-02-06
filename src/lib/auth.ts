@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { createHash } from "crypto";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // PrismaAdapter type mismatch with Auth.js v5 - known issue
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: PrismaAdapter(db) as any,
   session: { strategy: "jwt" },
   pages: {

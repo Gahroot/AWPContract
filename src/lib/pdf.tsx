@@ -13,6 +13,74 @@ import { formatCurrency } from "./pricing";
 import { BOOLEAN_ADDON_LABELS } from "./constants";
 import { format } from "date-fns";
 
+interface PdfLineItem {
+  location: string | null;
+  type: string;
+  qty: number;
+  width: number;
+  height: number;
+  color: string;
+  series: string;
+  price: number;
+  [key: string]: unknown;
+}
+
+interface PdfContract {
+  contractNumber?: string;
+  createdAt?: string | Date;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerEmail: string | null;
+  jobAddress: string | null;
+  customerCity: string | null;
+  customerZip: string | null;
+  salesman: string | null;
+  houseType: string | null;
+  lineItems: PdfLineItem[];
+  total: number;
+  discount: number;
+  contractTotal: number;
+  downPayment: number;
+  balanceDue: number;
+  contractorSignature: string | null;
+  contractorSignatureDate: string | Date | null;
+  customerSignature: string | null;
+  customerSignatureDate: string | Date | null;
+}
+
+interface PdfAddendumProduct {
+  type: string;
+  qty: number;
+  width: number;
+  height: number;
+  notes?: string;
+}
+
+interface PdfAddendum {
+  products?: PdfAddendumProduct[];
+  interiorColor: string | null;
+  exteriorColor: string | null;
+  contractorSignature: string | null;
+  customerSignature: string | null;
+}
+
+interface PdfChangeOrder {
+  changeOrderNumber: string;
+  originalPrice: number;
+  changesDescription: string | null;
+  priceChangeType: string;
+  priceChangeAmount: number;
+  newPrice: number;
+  newBalanceDue: number;
+  customerSignature: string | null;
+  awpSignature: string | null;
+}
+
+interface PdfContractBase {
+  contractNumber?: string;
+  customerName: string | null;
+}
+
 const styles = StyleSheet.create({
   page: {
     padding: 30,
@@ -141,8 +209,8 @@ const styles = StyleSheet.create({
 });
 
 // Sales Contract PDF
-function SalesContractDocument({ contract }: { contract: any }) {
-  const booleanAddons = (item: any) =>
+function SalesContractDocument({ contract }: { contract: PdfContract }) {
+  const booleanAddons = (item: PdfLineItem) =>
     Object.entries(BOOLEAN_ADDON_LABELS)
       .filter(([key]) => item[key])
       .map(([, label]) => label)
@@ -227,7 +295,7 @@ function SalesContractDocument({ contract }: { contract: any }) {
               <Text style={styles.col7}>Options</Text>
               <Text style={styles.col8}>Price</Text>
             </View>
-            {(contract.lineItems || []).map((item: any, i: number) => (
+            {(contract.lineItems || []).map((item: PdfLineItem, i: number) => (
               <View
                 key={i}
                 style={[
@@ -243,7 +311,7 @@ function SalesContractDocument({ contract }: { contract: any }) {
                 </Text>
                 <Text style={styles.col5}>{item.color}</Text>
                 <Text style={styles.col6}>{item.series}</Text>
-                <Text style={styles.col7}>{booleanAddons(item) || "—"}</Text>
+                <Text style={styles.col7}>{booleanAddons(item) || "\u2014"}</Text>
                 <Text style={styles.col8}>{formatCurrency(item.price)}</Text>
               </View>
             ))}
@@ -296,6 +364,7 @@ function SalesContractDocument({ contract }: { contract: any }) {
         <View style={styles.signatureSection}>
           <View style={styles.signatureBlock}>
             {contract.contractorSignature ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
               <Image
                 src={contract.contractorSignature}
                 style={styles.signatureImage}
@@ -312,6 +381,7 @@ function SalesContractDocument({ contract }: { contract: any }) {
           </View>
           <View style={styles.signatureBlock}>
             {contract.customerSignature ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
               <Image
                 src={contract.customerSignature}
                 style={styles.signatureImage}
@@ -337,8 +407,8 @@ function AddendumDocument({
   addendum,
   contract,
 }: {
-  addendum: any;
-  contract: any;
+  addendum: PdfAddendum;
+  contract: PdfContractBase;
 }) {
   return (
     <Document>
@@ -369,7 +439,7 @@ function AddendumDocument({
         {addendum.products && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Products</Text>
-            {(addendum.products as any[]).map((p: any, i: number) => (
+            {addendum.products.map((p: PdfAddendumProduct, i: number) => (
               <View key={i} style={styles.row}>
                 <Text style={styles.value}>
                   {p.type} - Qty: {p.qty}, Size: {p.width}x{p.height}
@@ -400,6 +470,7 @@ function AddendumDocument({
         <View style={styles.signatureSection}>
           <View style={styles.signatureBlock}>
             {addendum.contractorSignature ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
               <Image
                 src={addendum.contractorSignature}
                 style={styles.signatureImage}
@@ -411,6 +482,7 @@ function AddendumDocument({
           </View>
           <View style={styles.signatureBlock}>
             {addendum.customerSignature ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
               <Image
                 src={addendum.customerSignature}
                 style={styles.signatureImage}
@@ -431,8 +503,8 @@ function ChangeOrderDocument({
   changeOrder,
   contract,
 }: {
-  changeOrder: any;
-  contract: any;
+  changeOrder: PdfChangeOrder;
+  contract: PdfContractBase;
 }) {
   return (
     <Document>
@@ -515,6 +587,7 @@ function ChangeOrderDocument({
         <View style={styles.signatureSection}>
           <View style={styles.signatureBlock}>
             {changeOrder.customerSignature ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
               <Image
                 src={changeOrder.customerSignature}
                 style={styles.signatureImage}
@@ -526,6 +599,7 @@ function ChangeOrderDocument({
           </View>
           <View style={styles.signatureBlock}>
             {changeOrder.awpSignature ? (
+              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
               <Image
                 src={changeOrder.awpSignature}
                 style={styles.signatureImage}
@@ -543,7 +617,7 @@ function ChangeOrderDocument({
 
 // Render to buffer
 export async function generateSalesContractPdf(
-  contract: any
+  contract: PdfContract
 ): Promise<Uint8Array> {
   const stream = await ReactPDF.renderToStream(
     <SalesContractDocument contract={contract} />
@@ -557,8 +631,8 @@ export async function generateSalesContractPdf(
 }
 
 export async function generateAddendumPdf(
-  addendum: any,
-  contract: any
+  addendum: PdfAddendum,
+  contract: PdfContractBase
 ): Promise<Uint8Array> {
   const stream = await ReactPDF.renderToStream(
     <AddendumDocument addendum={addendum} contract={contract} />
@@ -572,8 +646,8 @@ export async function generateAddendumPdf(
 }
 
 export async function generateChangeOrderPdf(
-  changeOrder: any,
-  contract: any
+  changeOrder: PdfChangeOrder,
+  contract: PdfContractBase
 ): Promise<Uint8Array> {
   const stream = await ReactPDF.renderToStream(
     <ChangeOrderDocument changeOrder={changeOrder} contract={contract} />

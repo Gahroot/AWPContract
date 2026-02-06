@@ -8,7 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function NewAddendumPage() {
   const params = useParams();
   const id = params.id as string;
-  const [contract, setContract] = useState<any>(null);
+  const [contract, setContract] = useState<{
+    id: string;
+    contractNumber: string;
+    customerName: string | null;
+    contractTotal: number;
+    error?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -14,18 +14,56 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Pen, Printer } from "lucide-react";
 import { formatCurrency } from "@/lib/pricing";
 import { format } from "date-fns";
 import { BOOLEAN_ADDON_LABELS, CONTRACT_STATUSES } from "@/lib/constants";
+import { type VariantProps } from "class-variance-authority";
+
+type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>["variant"]>;
+
+interface ContractLineItem {
+  id: string;
+  location: string | null;
+  type: string;
+  qty: number;
+  width: number;
+  height: number;
+  color: string;
+  series: string;
+  price: number;
+  [key: string]: unknown;
+}
+
+interface ContractView {
+  status: string;
+  pdfUrl: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
+  jobAddress: string | null;
+  customerCity: string | null;
+  customerZip: string | null;
+  lineItems: ContractLineItem[];
+  total: number;
+  discount: number;
+  contractTotal: number;
+  downPayment: number;
+  balanceDue: number;
+  contractorSignature: string | null;
+  contractorSignatureDate: string | null;
+  customerSignature: string | null;
+  customerSignatureDate: string | null;
+  error?: string;
+}
 
 export default function ContractViewPage() {
   const params = useParams();
   const token = params.token as string;
-  const [contract, setContract] = useState<any>(null);
+  const [contract, setContract] = useState<ContractView | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -96,7 +134,7 @@ export default function ContractViewPage() {
       {/* Contract Info */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Sales Contract</h1>
-        <Badge variant={statusConfig?.color as any}>
+        <Badge variant={statusConfig?.color as BadgeVariant}>
           {statusConfig?.label}
         </Badge>
       </div>
@@ -158,7 +196,7 @@ export default function ContractViewPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contract.lineItems.map((item: any) => (
+                  {contract.lineItems.map((item: ContractLineItem) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.location || "—"}</TableCell>
                       <TableCell>{item.type}</TableCell>
@@ -232,6 +270,7 @@ export default function ContractViewPage() {
                 Contractor Signature
               </p>
               {contract.contractorSignature ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={contract.contractorSignature}
                   alt="Contractor signature"
@@ -256,6 +295,7 @@ export default function ContractViewPage() {
                 Customer Signature
               </p>
               {contract.customerSignature ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={contract.customerSignature}
                   alt="Customer signature"

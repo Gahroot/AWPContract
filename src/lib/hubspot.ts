@@ -54,6 +54,7 @@ export async function upsertContact(
             filters: [
               {
                 propertyName: "email",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 operator: "EQ" as any,
                 value: contract.customerEmail,
               },
@@ -121,6 +122,7 @@ export async function createDeal(
         to: { id: contactId },
         types: [
           {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             associationCategory: "HUBSPOT_DEFINED" as any,
             associationTypeId: 3, // Deal to Contact
           },
@@ -149,6 +151,7 @@ export async function addLineItems(
           to: { id: dealId },
           types: [
             {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               associationCategory: "HUBSPOT_DEFINED" as any,
               associationTypeId: 20, // Line Item to Deal
             },
@@ -178,6 +181,7 @@ export async function attachPdfNote(
         to: { id: dealId },
         types: [
           {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             associationCategory: "HUBSPOT_DEFINED" as any,
             associationTypeId: 214, // Note to Deal
           },

@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/table";
 import { Plus, Trash2 } from "lucide-react";
 import { FORM_OPTIONS, BOOLEAN_ADDON_LABELS } from "@/lib/constants";
-import { calculateLineItem } from "@/lib/pricing";
-import { formatCurrency } from "@/lib/pricing";
+import { calculateLineItem, formatCurrency } from "@/lib/pricing";
+import { type LineItemFormValues } from "@/lib/validations";
 import { useEffect } from "react";
 
 const BOOLEAN_FIELDS = [
@@ -56,7 +56,7 @@ const defaultLineItem = {
 };
 
 export function LineItemsTable() {
-  const { control, register, setValue } = useFormContext();
+  const { control, setValue } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "lineItems",
@@ -68,11 +68,11 @@ export function LineItemsTable() {
   // Recalculate prices when any line item changes
   useEffect(() => {
     if (!lineItems) return;
-    lineItems.forEach((item: any, index: number) => {
+    lineItems.forEach((item: LineItemFormValues, index: number) => {
       const price = calculateLineItem({
-        width: parseFloat(item.width) || 0,
-        height: parseFloat(item.height) || 0,
-        qty: parseInt(item.qty) || 1,
+        width: Number(item.width) || 0,
+        height: Number(item.height) || 0,
+        qty: Number(item.qty) || 1,
         color: item.color || "White",
         series: item.series || "Patriot",
         frame: item.frame || "Nail Fin",

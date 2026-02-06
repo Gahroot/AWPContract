@@ -33,7 +33,6 @@ export function SignaturePad({
   useEffect(() => {
     if (value && canvasRef.current && mode === "draw" && !initialLoadRef.current) {
       canvasRef.current.fromDataURL(value);
-      setHasSignature(true);
       initialLoadRef.current = true;
     }
   }, [value, mode]);

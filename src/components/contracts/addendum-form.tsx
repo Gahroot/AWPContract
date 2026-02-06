@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -58,6 +57,7 @@ export function AddendumForm({ contract }: AddendumFormProps) {
     setValue,
     watch,
   } = useForm<AddendumFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 + @hookform/resolvers type mismatch
     resolver: zodResolver(addendumSchema) as any,
     defaultValues: {
       contractId: contract.id,
@@ -290,9 +290,9 @@ export function AddendumForm({ contract }: AddendumFormProps) {
             {INSTALL_FIELDS.map(({ key, label }) => (
               <label key={key} className="flex items-center gap-2 text-sm">
                 <Checkbox
-                  checked={!!watch(key as any)}
+                  checked={!!watch(key)}
                   onCheckedChange={(checked) =>
-                    setValue(key as any, !!checked)
+                    setValue(key, !!checked)
                   }
                 />
                 {label}

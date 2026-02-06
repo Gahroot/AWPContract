@@ -28,7 +28,7 @@ import { FORM_OPTIONS } from "@/lib/constants";
 import * as motion from "motion/react-client";
 
 interface SalesContractFormProps {
-  initialData?: any;
+  initialData?: Partial<SalesContractDraftValues>;
   contractId?: string;
 }
 
@@ -46,6 +46,7 @@ export function SalesContractForm({
   const [submitting, setSubmitting] = useState(false);
 
   const methods = useForm<SalesContractDraftValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 + @hookform/resolvers type mismatch
     resolver: zodResolver(salesContractDraftSchema) as any,
     defaultValues: initialData
       ? {
@@ -65,8 +66,8 @@ export function SalesContractForm({
           yearBuilt: initialData.yearBuilt || "",
           houseType: initialData.houseType || "",
           lineItems:
-            initialData.lineItems?.length > 0
-              ? initialData.lineItems
+            (initialData.lineItems?.length ?? 0) > 0
+              ? initialData.lineItems!
               : [
                   {
                     location: "",
@@ -137,7 +138,8 @@ export function SalesContractForm({
 
   // Auto-save handler
   const handleAutoSave = useCallback(
-    async (data: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches useAutoSave's AnyFormValues type
+    async (data: Record<string, any>) => {
       if (!contractId) return;
       await fetch(`/api/contracts/${contractId}`, {
         method: "PATCH",
@@ -149,7 +151,8 @@ export function SalesContractForm({
   );
 
   const { saving, lastSaved } = useAutoSave({
-    watch,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches useAutoSave's AnyFormValues type
+    watch: watch as unknown as import("react-hook-form").UseFormWatch<Record<string, any>>,
     contractId,
     onSave: handleAutoSave,
     enabled: !!contractId,
@@ -250,7 +253,7 @@ export function SalesContractForm({
       });
 
       if (res.ok) {
-        const result = await res.json();
+        await res.json();
         toast.success("Contract submitted successfully");
         router.push("/");
       } else {

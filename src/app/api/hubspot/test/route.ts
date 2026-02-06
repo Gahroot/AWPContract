@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 // POST /api/hubspot/test - Test HubSpot connection
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,10 +24,11 @@ export async function POST(req: NextRequest) {
     const { testConnection } = await import("@/lib/hubspot");
     const success = await testConnection(setting.value);
     return NextResponse.json({ success });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Connection failed";
     return NextResponse.json({
       success: false,
-      error: e.message || "Connection failed",
+      error: message,
     });
   }
 }

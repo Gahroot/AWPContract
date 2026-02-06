@@ -35,6 +35,7 @@ export function ChangeOrderForm({ contract }: ChangeOrderFormProps) {
 
   const { register, handleSubmit, setValue, watch } =
     useForm<ChangeOrderFormValues>({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 + @hookform/resolvers type mismatch
       resolver: zodResolver(changeOrderSchema) as any,
       defaultValues: {
         contractId: contract.id,
@@ -141,7 +142,7 @@ export function ChangeOrderForm({ contract }: ChangeOrderFormProps) {
           <RadioGroup
             value={priceChangeType}
             onValueChange={(v) =>
-              setValue("priceChangeType", v as any, { shouldDirty: true })
+              setValue("priceChangeType", v as ChangeOrderFormValues["priceChangeType"], { shouldDirty: true })
             }
           >
             <div className="space-y-3">

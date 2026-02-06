@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function EditContractPage() {
   const params = useParams();
   const id = params.id as string;
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { CurrencyInput } from "@/components/shared/currency-input";
 import { usePricingCalculator } from "@/lib/hooks/use-pricing-calculator";
 import { formatCurrency } from "@/lib/pricing";
+import { type LineItemFormValues } from "@/lib/validations";
 
 export function PricingSummary() {
   const { control, setValue, register } = useFormContext();
@@ -16,10 +17,10 @@ export function PricingSummary() {
   const downPayment = useWatch({ control, name: "downPayment" }) || 0;
 
   const { total, contractTotal, balanceDue } = usePricingCalculator({
-    lineItems: lineItems.map((item: any) => ({
-      width: parseFloat(item.width) || 0,
-      height: parseFloat(item.height) || 0,
-      qty: parseInt(item.qty) || 1,
+    lineItems: lineItems.map((item: LineItemFormValues) => ({
+      width: Number(item.width) || 0,
+      height: Number(item.height) || 0,
+      qty: Number(item.qty) || 1,
       color: item.color || "White",
       series: item.series || "Patriot",
       frame: item.frame || "Nail Fin",
@@ -31,8 +32,8 @@ export function PricingSummary() {
       coated: !!item.coated,
       awpShutterRnr: !!item.awpShutterRnr,
     })),
-    discount: parseFloat(discount) || 0,
-    downPayment: parseFloat(downPayment) || 0,
+    discount: Number(discount) || 0,
+    downPayment: Number(downPayment) || 0,
   });
 
   return (

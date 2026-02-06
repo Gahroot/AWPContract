@@ -20,7 +20,7 @@ export async function GET(
   }
 
   // Strip sensitive fields
-  const { userId, ...publicData } = contract;
+  const { userId: _userId, ...publicData } = contract;
 
   return NextResponse.json(publicData);
 }

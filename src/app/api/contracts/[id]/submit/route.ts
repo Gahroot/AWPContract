@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { calculateLineItem, calculateContractTotal, calculateBalanceDue } from "@/lib/pricing";
+import { calculateLineItem, calculateContractTotal, calculateBalanceDue, type LineItemInput } from "@/lib/pricing";
 
 // POST /api/contracts/[id]/submit - Finalize contract
 export async function POST(
@@ -46,7 +46,7 @@ export async function POST(
   // Server-side price validation
   let serverTotal = 0;
   const processedItems = lineItems.map(
-    (item: any, index: number) => {
+    (item: LineItemInput & { location?: string; sortOrder?: number; price?: number; type?: string }, index: number) => {
       const serverPrice = calculateLineItem(item);
       serverTotal += serverPrice;
 

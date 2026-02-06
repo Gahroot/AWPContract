@@ -46,10 +46,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, ...result });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("HubSpot sync error:", e);
+    const message = e instanceof Error ? e.message : "HubSpot sync failed";
     return NextResponse.json(
-      { error: e.message || "HubSpot sync failed" },
+      { error: message },
       { status: 500 }
     );
   }

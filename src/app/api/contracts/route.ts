@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { calculateLineItem, calculateContractTotal, calculateBalanceDue } from "@/lib/pricing";
+import { Prisma, ContractStatus } from "@/generated/prisma/client";
+import { calculateLineItem, calculateContractTotal, calculateBalanceDue, type LineItemInput } from "@/lib/pricing";
 
 // GET /api/contracts - List contracts with pagination & filters
 export async function GET(req: NextRequest) {
@@ -17,10 +18,10 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(searchParams.get("limit") || "10");
   const skip = (page - 1) * limit;
 
-  const where: any = {};
+  const where: Prisma.ContractWhereInput = {};
 
   if (status) {
-    where.status = status;
+    where.status = status as ContractStatus;
   }
 
   if (search) {
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
   // Calculate pricing server-side
   let total = 0;
   const processedItems = (lineItems || []).map(
-    (item: any, index: number) => {
+    (item: LineItemInput & { location?: string; sortOrder?: number; type?: string }, index: number) => {
       const price = calculateLineItem(item);
       total += price;
       return {
