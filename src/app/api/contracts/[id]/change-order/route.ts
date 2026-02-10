@@ -111,5 +111,25 @@ export async function POST(
     }
   }
 
+  // Non-blocking HubSpot sync if change order is signed and contract has HubSpot deal
+  if (
+    contract.hubspotDealId &&
+    changeOrder.customerSignature &&
+    changeOrder.awpSignature
+  ) {
+    // Fire and forget sync
+    (async () => {
+      try {
+        const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
+        if (setting?.value) {
+          const { syncChangeOrder, toChangeOrderData } = await import("@/lib/hubspot");
+          await syncChangeOrder(toChangeOrderData(changeOrder), contract, setting.value);
+        }
+      } catch (err) {
+        console.error("HubSpot change order sync error:", err);
+      }
+    })();
+  }
+
   return NextResponse.json(changeOrder, { status: 201 });
 }

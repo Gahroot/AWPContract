@@ -89,5 +89,25 @@ export async function POST(
     },
   });
 
+  // Non-blocking HubSpot sync if addendum is signed and contract has HubSpot deal
+  if (
+    contract.hubspotDealId &&
+    addendum.customerSignature &&
+    addendum.contractorSignature
+  ) {
+    // Fire and forget sync
+    (async () => {
+      try {
+        const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
+        if (setting?.value) {
+          const { syncAddendum, toAddendumData } = await import("@/lib/hubspot");
+          await syncAddendum(toAddendumData(addendum), contract, setting.value);
+        }
+      } catch (err) {
+        console.error("HubSpot addendum sync error:", err);
+      }
+    })();
+  }
+
   return NextResponse.json(addendum, { status: 201 });
 }

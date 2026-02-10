@@ -37,8 +37,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { syncContract } = await import("@/lib/hubspot");
-    const result = await syncContract(contract, setting.value);
+    const { syncContract, toContractData } = await import("@/lib/hubspot");
+    const contractData = toContractData(contract);
+    const result = await syncContract(contractData, setting.value);
 
     // Save HubSpot IDs
     await db.contract.update({

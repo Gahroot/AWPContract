@@ -238,6 +238,10 @@ model Addendum {
 
   pdfUrl String?
 
+  // HubSpot
+  hubspotNoteId String?
+  syncedAt      DateTime?
+
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -268,6 +272,10 @@ model ChangeOrder {
   awpSignatureDate      DateTime?
 
   pdfUrl String?
+
+  // HubSpot
+  hubspotNoteId String?
+  syncedAt      DateTime?
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
