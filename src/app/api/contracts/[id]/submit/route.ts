@@ -178,6 +178,14 @@ export async function POST(
     console.error("HubSpot sync failed:", e);
   }
 
+  // Commission calculation
+  try {
+    const { upsertCommissionForContract } = await import("@/lib/commission");
+    await upsertCommissionForContract(id, "Initial calculation on contract completion");
+  } catch (e) {
+    console.error("Commission calculation failed:", e);
+  }
+
   return NextResponse.json({
     contract,
     hubspot: hubspotSynced,

@@ -128,3 +128,29 @@ export const changeOrderSchema = z.object({
 });
 
 export type ChangeOrderFormValues = z.infer<typeof changeOrderSchema>;
+
+// Commission config schema
+export const commissionConfigSchema = z.object({
+  modelType: z.enum(["FLAT_PERCENT", "PER_SALESPERSON", "TIERED"]),
+  flatRate: z.coerce.number().min(0).max(1).optional(),
+  tiers: z
+    .array(
+      z.object({
+        minAmount: z.coerce.number().min(0),
+        maxAmount: z.coerce.number().min(0).nullable(),
+        rate: z.coerce.number().min(0).max(1),
+        sortOrder: z.coerce.number().min(0),
+      })
+    )
+    .optional(),
+  salespersonRates: z
+    .array(
+      z.object({
+        userId: z.string().min(1),
+        rate: z.coerce.number().min(0).max(1),
+      })
+    )
+    .optional(),
+});
+
+export type CommissionConfigFormValues = z.infer<typeof commissionConfigSchema>;

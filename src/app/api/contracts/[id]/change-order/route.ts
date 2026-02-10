@@ -98,6 +98,17 @@ export async function POST(
         balanceDue: Math.max(0, newBalanceDue),
       },
     });
+
+    // Recalculate commission after price change
+    try {
+      const { upsertCommissionForContract } = await import("@/lib/commission");
+      await upsertCommissionForContract(
+        id,
+        `Recalculated due to Change Order ${changeOrderNumber}`
+      );
+    } catch (e) {
+      console.error("Commission recalculation failed:", e);
+    }
   }
 
   return NextResponse.json(changeOrder, { status: 201 });

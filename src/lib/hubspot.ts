@@ -191,6 +191,20 @@ export async function attachPdfNote(
   });
 }
 
+export async function updateDealCommission(
+  client: Client,
+  dealId: string,
+  commissionAmount: number,
+  commissionRate: number
+): Promise<void> {
+  await client.crm.deals.basicApi.update(dealId, {
+    properties: {
+      awp_commission_amount: String(commissionAmount),
+      awp_commission_rate: String(commissionRate),
+    },
+  });
+}
+
 export async function syncContract(
   contract: ContractData,
   accessToken: string

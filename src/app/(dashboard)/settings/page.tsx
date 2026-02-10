@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, CheckCircle } from "lucide-react";
+import { Loader2, CheckCircle, DollarSign } from "lucide-react";
+import Link from "next/link";
 
 interface SettingsData {
   company_name: string;
@@ -144,6 +145,23 @@ export default function SettingsPage() {
             )}
             Test Connection
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Commission Settings</CardTitle>
+          <CardDescription>
+            Configure how salesperson commissions are calculated.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/settings/commissions">
+            <Button variant="outline">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Manage Commissions
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 

@@ -19,6 +19,12 @@ enum ContractStatus {
   COMPLETED
 }
 
+enum CommissionModelType {
+  FLAT_PERCENT
+  PER_SALESPERSON
+  TIERED
+}
+
 // ─── Auth.js Models ───────────────────────────────────────────
 
 model User {
@@ -32,9 +38,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts  Account[]
-  sessions  Session[]
-  contracts Contract[]
+  accounts          Account[]
+  sessions          Session[]
+  contracts         Contract[]
+  commissionRate    CommissionRate?
+  commissionRecords CommissionRecord[]
 }
 
 model Account {
@@ -139,9 +147,10 @@ model Contract {
   // Relations
   userId       String?
   user         User?         @relation(fields: [userId], references: [id])
-  lineItems    LineItem[]
-  addendums    Addendum[]
-  changeOrders ChangeOrder[]
+  lineItems         LineItem[]
+  addendums         Addendum[]
+  changeOrders      ChangeOrder[]
+  commissionRecords CommissionRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -274,4 +283,56 @@ model Setting {
   value String @db.Text
 
   @@index([key])
+}
+
+// ─── Commission Models ──────────────────────────────────────
+
+model CommissionConfig {
+  id        String              @id @default(cuid())
+  modelType CommissionModelType @default(FLAT_PERCENT)
+  flatRate  Float?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+}
+
+model CommissionRate {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  rate      Float
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model CommissionTier {
+  id        String   @id @default(cuid())
+  minAmount Float
+  maxAmount Float?
+  rate      Float
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
+model CommissionRecord {
+  id            String              @id @default(cuid())
+  contractId    String
+  userId        String
+  contractTotal Float
+  modelType     CommissionModelType
+  rate          Float
+  amount        Float
+  notes         String?
+  contract      Contract            @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([contractId])
+  @@index([userId])
+  @@index([createdAt])
 }

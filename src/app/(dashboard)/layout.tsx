@@ -8,6 +8,7 @@ import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   FilePlus,
+  DollarSign,
   Settings,
   Menu,
   LogOut,
@@ -28,6 +29,7 @@ import { Toaster } from "@/components/ui/sonner";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/contracts/new", label: "New Contract", icon: FilePlus },
+  { href: "/commissions", label: "Commissions", icon: DollarSign },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
