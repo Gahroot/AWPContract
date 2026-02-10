@@ -14,7 +14,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Save, Send, UserCheck, Loader2 } from "lucide-react";
+import { Save, Send, UserCheck, Loader2, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { SignaturePad } from "@/components/shared/signature-pad";
 import { AutoSaveIndicator } from "@/components/shared/auto-save-indicator";
 import { LineItemsTable } from "./line-items-table";
@@ -27,8 +28,18 @@ import {
 import { FORM_OPTIONS } from "@/lib/constants";
 import * as motion from "motion/react-client";
 
+interface ChangeOrderData {
+  id: string;
+  changeOrderNumber: string;
+  priceChangeType: string;
+  priceChangeAmount: number;
+  originalPrice: number;
+  newPrice: number;
+  newBalanceDue: number;
+}
+
 interface SalesContractFormProps {
-  initialData?: Partial<SalesContractDraftValues>;
+  initialData?: Partial<SalesContractDraftValues> & { changeOrders?: ChangeOrderData[] };
   contractId?: string;
 }
 
@@ -44,6 +55,7 @@ export function SalesContractForm({
     initialData?.status === "PENDING_SIGNATURE" ? "customer" : "contractor"
   );
   const [submitting, setSubmitting] = useState(false);
+  const changeOrders = initialData?.changeOrders;
 
   const methods = useForm<SalesContractDraftValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 + @hookform/resolvers type mismatch
@@ -305,6 +317,20 @@ export function SalesContractForm({
           </div>
         </div>
 
+        {/* Change Order Banner */}
+        {changeOrders && changeOrders.length > 0 && (
+          <div className="flex items-center gap-3 rounded-lg border border-awp-orange/30 bg-awp-orange/10 px-4 py-3">
+            <AlertTriangle className="h-5 w-5 text-awp-orange-text shrink-0" />
+            <span className="text-sm font-medium">
+              This contract has been modified by change orders.
+              Adjusted totals are shown in the Pricing Summary below.
+            </span>
+            <Badge variant="highlight">
+              {changeOrders.length} Change Order{changeOrders.length > 1 ? "s" : ""}
+            </Badge>
+          </div>
+        )}
+
         {/* Section 1: Customer Info */}
         <Card>
           <CardHeader>
@@ -433,7 +459,7 @@ export function SalesContractForm({
         <LineItemsTable />
 
         {/* Section 4: Pricing */}
-        <PricingSummary />
+        <PricingSummary changeOrders={changeOrders} />
 
         {/* Section 5: Marketing */}
         <Card>
