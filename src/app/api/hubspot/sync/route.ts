@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
 
+  if (session.user.role !== "ADMIN" && contract.userId !== session.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   // Get HubSpot API key from settings
   const setting = await db.setting.findUnique({
     where: { key: "hubspot_api_key" },

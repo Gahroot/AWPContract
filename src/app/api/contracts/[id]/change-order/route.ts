@@ -13,6 +13,15 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Verify ownership
+  const contract = await db.contract.findUnique({ where: { id }, select: { userId: true } });
+  if (!contract) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (session.user.role !== "ADMIN" && contract.userId !== session.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const changeOrders = await db.changeOrder.findMany({
     where: { contractId: id },
     orderBy: { createdAt: "desc" },
@@ -35,6 +44,9 @@ export async function POST(
   const contract = await db.contract.findUnique({ where: { id } });
   if (!contract) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  }
+  if (session.user.role !== "ADMIN" && contract.userId !== session.user.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await req.json();
