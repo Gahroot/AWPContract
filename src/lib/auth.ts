@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
-import { createHash } from "crypto";
+import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // PrismaAdapter type mismatch with Auth.js v5 - known issue
@@ -28,11 +28,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user || !user.password) return null;
 
-        const hash = createHash("sha256")
-          .update(credentials.password as string)
-          .digest("hex");
+        const valid = await bcrypt.compare(
+          credentials.password as string,
+          user.password
+        );
 
-        if (hash !== user.password) return null;
+        if (!valid) return null;
 
         return {
           id: user.id,

@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
       },
     },
     orderBy: { createdAt: "desc" },
+    take: 10_000,
   });
 
   // Build CSV

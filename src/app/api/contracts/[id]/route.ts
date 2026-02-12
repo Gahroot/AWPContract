@@ -91,56 +91,58 @@ export async function PATCH(
     const contractTotal = calculateContractTotal(total, discount);
     const balanceDue = calculateBalanceDue(contractTotal, downPayment);
 
-    // Delete existing line items and recreate
-    await db.lineItem.deleteMany({ where: { contractId: id } });
+    // Delete existing line items and recreate atomically
+    const contract = await db.$transaction(async (tx) => {
+      await tx.lineItem.deleteMany({ where: { contractId: id } });
 
-    const contract = await db.contract.update({
-      where: { id },
-      data: {
-        customerName: contractData.customerName ?? undefined,
-        customerPhone: contractData.customerPhone ?? undefined,
-        customerPhoneAlt: contractData.customerPhoneAlt ?? undefined,
-        customerEmail: contractData.customerEmail ?? undefined,
-        jobAddress: contractData.jobAddress ?? undefined,
-        billingAddress: contractData.billingAddress ?? undefined,
-        customerCity: contractData.customerCity ?? undefined,
-        customerZip: contractData.customerZip ?? undefined,
-        salesman: contractData.salesman ?? undefined,
-        measurementDate: contractData.measurementDate
-          ? new Date(contractData.measurementDate)
-          : undefined,
-        leadTest: contractData.leadTest ?? undefined,
-        yearBuilt: contractData.yearBuilt ?? undefined,
-        houseType: contractData.houseType ?? undefined,
-        total,
-        discount,
-        contractTotal,
-        downPayment,
-        balanceDue,
-        financeBalance:
-          contractData.financeBalance !== undefined
-            ? parseFloat(contractData.financeBalance) || 0
+      return tx.contract.update({
+        where: { id },
+        data: {
+          customerName: contractData.customerName ?? undefined,
+          customerPhone: contractData.customerPhone ?? undefined,
+          customerPhoneAlt: contractData.customerPhoneAlt ?? undefined,
+          customerEmail: contractData.customerEmail ?? undefined,
+          jobAddress: contractData.jobAddress ?? undefined,
+          billingAddress: contractData.billingAddress ?? undefined,
+          customerCity: contractData.customerCity ?? undefined,
+          customerZip: contractData.customerZip ?? undefined,
+          salesman: contractData.salesman ?? undefined,
+          measurementDate: contractData.measurementDate
+            ? new Date(contractData.measurementDate)
             : undefined,
-        wfebAccount: contractData.wfebAccount ?? undefined,
-        planNumber: contractData.planNumber ?? undefined,
-        authNumber: contractData.authNumber ?? undefined,
-        marketingSource: contractData.marketingSource ?? undefined,
-        paymentMethod: contractData.paymentMethod ?? undefined,
-        measurementNotes: contractData.measurementNotes ?? undefined,
-        contractorSignature: contractData.contractorSignature ?? undefined,
-        contractorSignatureDate: contractData.contractorSignatureDate
-          ? new Date(contractData.contractorSignatureDate)
-          : undefined,
-        customerSignature: contractData.customerSignature ?? undefined,
-        customerSignatureDate: contractData.customerSignatureDate
-          ? new Date(contractData.customerSignatureDate)
-          : undefined,
-        status: contractData.status ?? undefined,
-        lineItems: {
-          create: processedItems,
+          leadTest: contractData.leadTest ?? undefined,
+          yearBuilt: contractData.yearBuilt ?? undefined,
+          houseType: contractData.houseType ?? undefined,
+          total,
+          discount,
+          contractTotal,
+          downPayment,
+          balanceDue,
+          financeBalance:
+            contractData.financeBalance !== undefined
+              ? parseFloat(contractData.financeBalance) || 0
+              : undefined,
+          wfebAccount: contractData.wfebAccount ?? undefined,
+          planNumber: contractData.planNumber ?? undefined,
+          authNumber: contractData.authNumber ?? undefined,
+          marketingSource: contractData.marketingSource ?? undefined,
+          paymentMethod: contractData.paymentMethod ?? undefined,
+          measurementNotes: contractData.measurementNotes ?? undefined,
+          contractorSignature: contractData.contractorSignature ?? undefined,
+          contractorSignatureDate: contractData.contractorSignatureDate
+            ? new Date(contractData.contractorSignatureDate)
+            : undefined,
+          customerSignature: contractData.customerSignature ?? undefined,
+          customerSignatureDate: contractData.customerSignatureDate
+            ? new Date(contractData.customerSignatureDate)
+            : undefined,
+          status: contractData.status ?? undefined,
+          lineItems: {
+            create: processedItems,
+          },
         },
-      },
-      include: { lineItems: true },
+        include: { lineItems: true },
+      });
     });
 
     return NextResponse.json(contract);

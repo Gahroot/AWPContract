@@ -59,42 +59,40 @@ export async function GET(req: NextRequest) {
     db.commissionRecord.count({ where }),
   ]);
 
-  // Summary aggregation
-  const allRecords = await db.commissionRecord.findMany({
-    where,
-    select: { amount: true, rate: true, userId: true },
-  });
+  // Summary aggregation using DB queries instead of fetching all records
+  const [aggregation, groupedByUser] = await Promise.all([
+    db.commissionRecord.aggregate({
+      where,
+      _sum: { amount: true },
+      _avg: { rate: true },
+      _count: true,
+    }),
+    db.commissionRecord.groupBy({
+      by: ["userId"],
+      where,
+      _sum: { amount: true },
+      _count: true,
+    }),
+  ]);
 
-  const totalCommission = allRecords.reduce((sum, r) => sum + r.amount, 0);
-  const totalContracts = allRecords.length;
-  const averageRate =
-    totalContracts > 0
-      ? allRecords.reduce((sum, r) => sum + r.rate, 0) / totalContracts
-      : 0;
-
-  // Per-user breakdown
-  const byUserMap = new Map<string, { total: number; count: number }>();
-  for (const r of allRecords) {
-    const entry = byUserMap.get(r.userId) ?? { total: 0, count: 0 };
-    entry.total += r.amount;
-    entry.count += 1;
-    byUserMap.set(r.userId, entry);
-  }
+  const totalCommission = aggregation._sum.amount ?? 0;
+  const totalContracts = aggregation._count;
+  const averageRate = aggregation._avg.rate ?? 0;
 
   // Get user names for breakdown
-  const userIds = Array.from(byUserMap.keys());
+  const userIds = groupedByUser.map((g) => g.userId);
   const users = await db.user.findMany({
     where: { id: { in: userIds } },
     select: { id: true, name: true, email: true },
   });
 
-  const byUser = users.map((u) => {
-    const entry = byUserMap.get(u.id)!;
+  const byUser = groupedByUser.map((g) => {
+    const user = users.find((u) => u.id === g.userId);
     return {
-      userId: u.id,
-      name: u.name ?? u.email,
-      totalCommission: Math.round(entry.total * 100) / 100,
-      contractCount: entry.count,
+      userId: g.userId,
+      name: user?.name ?? user?.email ?? "Unknown",
+      totalCommission: Math.round((g._sum.amount ?? 0) * 100) / 100,
+      contractCount: g._count,
     };
   });
 

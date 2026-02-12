@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-const SETTING_KEYS = [
+const PUBLIC_SETTING_KEYS = [
   "company_name",
   "company_phone",
   "company_address",
-  "hubspot_api_key",
 ];
+
+const ADMIN_SETTING_KEYS = [...PUBLIC_SETTING_KEYS, "hubspot_api_key"];
 
 // GET /api/settings
 export async function GET() {
@@ -16,12 +17,15 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const isAdmin = session.user.role === "ADMIN";
+  const keys = isAdmin ? ADMIN_SETTING_KEYS : PUBLIC_SETTING_KEYS;
+
   const settings = await db.setting.findMany({
-    where: { key: { in: SETTING_KEYS } },
+    where: { key: { in: keys } },
   });
 
   const result: Record<string, string> = {};
-  for (const key of SETTING_KEYS) {
+  for (const key of keys) {
     result[key] = settings.find((s) => s.key === key)?.value ?? "";
   }
 
@@ -37,7 +41,7 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.json();
 
-  for (const key of SETTING_KEYS) {
+  for (const key of ADMIN_SETTING_KEYS) {
     if (body[key] !== undefined) {
       await db.setting.upsert({
         where: { key },

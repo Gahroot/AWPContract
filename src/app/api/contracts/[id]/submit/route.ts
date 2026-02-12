@@ -93,57 +93,59 @@ export async function POST(
   const contractTotal = calculateContractTotal(serverTotal, discount);
   const balanceDue = calculateBalanceDue(contractTotal, downPayment);
 
-  // Delete existing line items and recreate
-  await db.lineItem.deleteMany({ where: { contractId: id } });
+  // Delete existing line items and recreate atomically
+  const contract = await db.$transaction(async (tx) => {
+    await tx.lineItem.deleteMany({ where: { contractId: id } });
 
-  const contract = await db.contract.update({
-    where: { id },
-    data: {
-      customerName: contractData.customerName,
-      customerPhone: contractData.customerPhone || null,
-      customerPhoneAlt: contractData.customerPhoneAlt || null,
-      customerEmail: contractData.customerEmail || null,
-      jobAddress: contractData.jobAddress || null,
-      billingAddress: contractData.billingAddress || null,
-      customerCity: contractData.customerCity || null,
-      customerZip: contractData.customerZip || null,
-      salesman: contractData.salesman || null,
-      measurementDate: contractData.measurementDate
-        ? new Date(contractData.measurementDate)
-        : null,
-      leadTest: contractData.leadTest || null,
-      yearBuilt: contractData.yearBuilt || null,
-      houseType: contractData.houseType || null,
-      total: serverTotal,
-      discount,
-      contractTotal,
-      downPayment,
-      balanceDue,
-      financeBalance: parseFloat(contractData.financeBalance) || 0,
-      wfebAccount: contractData.wfebAccount || null,
-      planNumber: contractData.planNumber || null,
-      authNumber: contractData.authNumber || null,
-      marketingSource: contractData.marketingSource || null,
-      paymentMethod: contractData.paymentMethod || null,
-      measurementNotes: contractData.measurementNotes || null,
-      contractorSignature: contractData.contractorSignature,
-      contractorSignatureDate: contractData.contractorSignatureDate
-        ? new Date(contractData.contractorSignatureDate)
-        : new Date(),
-      customerSignature: contractData.customerSignature,
-      customerSignatureDate: contractData.customerSignatureDate
-        ? new Date(contractData.customerSignatureDate)
-        : new Date(),
-      authorizedSignature: contractData.authorizedSignature || null,
-      authorizedSignatureDate: contractData.authorizedSignatureDate
-        ? new Date(contractData.authorizedSignatureDate)
-        : null,
-      status: "COMPLETED",
-      lineItems: {
-        create: processedItems,
+    return tx.contract.update({
+      where: { id },
+      data: {
+        customerName: contractData.customerName,
+        customerPhone: contractData.customerPhone || null,
+        customerPhoneAlt: contractData.customerPhoneAlt || null,
+        customerEmail: contractData.customerEmail || null,
+        jobAddress: contractData.jobAddress || null,
+        billingAddress: contractData.billingAddress || null,
+        customerCity: contractData.customerCity || null,
+        customerZip: contractData.customerZip || null,
+        salesman: contractData.salesman || null,
+        measurementDate: contractData.measurementDate
+          ? new Date(contractData.measurementDate)
+          : null,
+        leadTest: contractData.leadTest || null,
+        yearBuilt: contractData.yearBuilt || null,
+        houseType: contractData.houseType || null,
+        total: serverTotal,
+        discount,
+        contractTotal,
+        downPayment,
+        balanceDue,
+        financeBalance: parseFloat(contractData.financeBalance) || 0,
+        wfebAccount: contractData.wfebAccount || null,
+        planNumber: contractData.planNumber || null,
+        authNumber: contractData.authNumber || null,
+        marketingSource: contractData.marketingSource || null,
+        paymentMethod: contractData.paymentMethod || null,
+        measurementNotes: contractData.measurementNotes || null,
+        contractorSignature: contractData.contractorSignature,
+        contractorSignatureDate: contractData.contractorSignatureDate
+          ? new Date(contractData.contractorSignatureDate)
+          : new Date(),
+        customerSignature: contractData.customerSignature,
+        customerSignatureDate: contractData.customerSignatureDate
+          ? new Date(contractData.customerSignatureDate)
+          : new Date(),
+        authorizedSignature: contractData.authorizedSignature || null,
+        authorizedSignatureDate: contractData.authorizedSignatureDate
+          ? new Date(contractData.authorizedSignatureDate)
+          : null,
+        status: "COMPLETED",
+        lineItems: {
+          create: processedItems,
+        },
       },
-    },
-    include: { lineItems: true },
+      include: { lineItems: true },
+    });
   });
 
   // Generate PDF (async, non-blocking for now)

@@ -1,6 +1,7 @@
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
+import bcrypt from "bcryptjs";
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
@@ -11,26 +12,24 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // Create default admin user (password: admin123)
-  // Using a simple hash for dev - in production use bcrypt
-  const { createHash } = await import("crypto");
-  const hash = createHash("sha256").update("admin123").digest("hex");
+  const adminHash = await bcrypt.hash("admin123", 12);
 
   await prisma.user.upsert({
     where: { email: "admin@awp.com" },
-    update: {},
+    update: { password: adminHash },
     create: {
       email: "admin@awp.com",
       name: "AWP Admin",
-      password: hash,
+      password: adminHash,
       role: "ADMIN",
     },
   });
 
   // Create a test salesman
-  const salesHash = createHash("sha256").update("sales123").digest("hex");
+  const salesHash = await bcrypt.hash("sales123", 12);
   await prisma.user.upsert({
     where: { email: "sales@awp.com" },
-    update: {},
+    update: { password: salesHash },
     create: {
       email: "sales@awp.com",
       name: "Test Salesman",
