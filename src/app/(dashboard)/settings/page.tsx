@@ -25,13 +25,18 @@ export default function SettingsPage() {
     hubspot_api_key: "",
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load");
+        return r.json();
+      })
       .then(setSettings)
+      .catch(() => setError("Something went wrong. Please try again."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -71,6 +76,14 @@ export default function SettingsPage() {
   }
 
   if (loading) return null;
+
+  if (error) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">

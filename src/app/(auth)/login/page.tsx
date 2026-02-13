@@ -63,7 +63,7 @@ function LoginForm() {
                 alt="Advanced Window Products"
                 width={200}
                 height={60}
-                priority
+                preload
               />
             </div>
             <p className="text-sm text-muted-foreground">

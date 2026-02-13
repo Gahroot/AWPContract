@@ -148,34 +148,21 @@ export async function POST(
     });
   });
 
-  // Generate PDF (async, non-blocking for now)
+  // Generate PDF
   try {
-    const pdfRes = await fetch(
-      `${process.env.NEXTAUTH_URL}/api/contracts/${id}/pdf`
-    );
-    if (pdfRes.ok) {
-      const { url } = await pdfRes.json();
-      await db.contract.update({
-        where: { id },
-        data: { pdfUrl: url },
-      });
-    }
+    const { generateAndSavePdf } = await import("@/lib/pdf");
+    const url = await generateAndSavePdf(contract);
+    await db.contract.update({ where: { id }, data: { pdfUrl: url } });
   } catch (e) {
     console.error("PDF generation failed:", e);
   }
 
-  // HubSpot sync (async, non-blocking)
+  // HubSpot sync
   let hubspotSynced = false;
   try {
-    const hubspotRes = await fetch(
-      `${process.env.NEXTAUTH_URL}/api/hubspot/sync`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contractId: id }),
-      }
-    );
-    hubspotSynced = hubspotRes.ok;
+    const { syncContractToHubSpot } = await import("@/lib/hubspot");
+    const result = await syncContractToHubSpot(contract);
+    hubspotSynced = result !== null;
   } catch (e) {
     console.error("HubSpot sync failed:", e);
   }

@@ -586,6 +586,22 @@ export async function syncChangeOrder(
   return { noteId: noteResponse.id, dealUpdated };
 }
 
+// High-level helper: sync a contract to HubSpot (fetch API key, sync, save IDs)
+export async function syncContractToHubSpot(
+  contract: Contract & { lineItems: LineItem[] }
+): Promise<{ contactId: string; dealId: string } | null> {
+  const { db } = await import("@/lib/db");
+  const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
+  if (!setting?.value) return null;
+  const contractData = toContractData(contract);
+  const result = await syncContract(contractData, setting.value);
+  await db.contract.update({
+    where: { id: contract.id },
+    data: { hubspotContactId: result.contactId, hubspotDealId: result.dealId },
+  });
+  return result;
+}
+
 export async function syncContract(
   contract: ContractData,
   accessToken: string

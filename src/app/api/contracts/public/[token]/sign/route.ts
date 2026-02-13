@@ -43,31 +43,29 @@ export async function POST(
     },
   });
 
-  // Generate PDF
-  try {
-    const pdfRes = await fetch(
-      `${process.env.NEXTAUTH_URL}/api/contracts/${contract.id}/pdf`
-    );
-    if (pdfRes.ok) {
-      const { url } = await pdfRes.json();
-      await db.contract.update({
-        where: { id: contract.id },
-        data: { pdfUrl: url },
-      });
-    }
-  } catch (e) {
-    console.error("PDF generation failed:", e);
-  }
+  // Refetch with lineItems for PDF/sync
+  const fullContract = await db.contract.findUnique({
+    where: { id: contract.id },
+    include: { lineItems: { orderBy: { sortOrder: "asc" } } },
+  });
 
-  // HubSpot sync
-  try {
-    await fetch(`${process.env.NEXTAUTH_URL}/api/hubspot/sync`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contractId: contract.id }),
-    });
-  } catch (e) {
-    console.error("HubSpot sync failed:", e);
+  if (fullContract) {
+    // Generate PDF
+    try {
+      const { generateAndSavePdf } = await import("@/lib/pdf");
+      const url = await generateAndSavePdf(fullContract);
+      await db.contract.update({ where: { id: contract.id }, data: { pdfUrl: url } });
+    } catch (e) {
+      console.error("PDF generation failed:", e);
+    }
+
+    // HubSpot sync
+    try {
+      const { syncContractToHubSpot } = await import("@/lib/hubspot");
+      await syncContractToHubSpot(fullContract);
+    } catch (e) {
+      console.error("HubSpot sync failed:", e);
+    }
   }
 
   return NextResponse.json({

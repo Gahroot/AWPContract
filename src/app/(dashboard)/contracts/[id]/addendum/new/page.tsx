@@ -16,11 +16,16 @@ export default function NewAddendumPage() {
     error?: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/contracts/${id}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load");
+        return r.json();
+      })
       .then(setContract)
+      .catch(() => setError("Something went wrong. Please try again."))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -29,6 +34,14 @@ export default function NewAddendumPage() {
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        {error}
       </div>
     );
   }

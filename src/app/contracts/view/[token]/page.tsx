@@ -65,11 +65,16 @@ export default function ContractViewPage() {
   const token = params.token as string;
   const [contract, setContract] = useState<ContractView | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/contracts/public/${token}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load");
+        return r.json();
+      })
       .then(setContract)
+      .catch(() => setError("Something went wrong. Please try again."))
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -78,6 +83,15 @@ export default function ContractViewPage() {
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         <Skeleton className="h-16 w-48 mx-auto" />
         <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-center py-20">
+        <h1 className="text-2xl font-bold mb-2">Error</h1>
+        <p className="text-muted-foreground">{error}</p>
       </div>
     );
   }

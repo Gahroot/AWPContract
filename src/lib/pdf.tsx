@@ -615,6 +615,20 @@ function ChangeOrderDocument({
   );
 }
 
+// Generate PDF and save to public/pdfs directory
+export async function generateAndSavePdf(
+  contract: PdfContract & { id?: string; contractNumber?: string }
+): Promise<string> {
+  const pdfBuffer = await generateSalesContractPdf(contract);
+  const fs = await import("fs/promises");
+  const path = await import("path");
+  const pdfDir = path.join(process.cwd(), "public", "pdfs");
+  await fs.mkdir(pdfDir, { recursive: true });
+  const filename = `contract-${contract.contractNumber}-${Date.now()}.pdf`;
+  await fs.writeFile(path.join(pdfDir, filename), Buffer.from(pdfBuffer));
+  return `/pdfs/${filename}`;
+}
+
 // Render to buffer
 export async function generateSalesContractPdf(
   contract: PdfContract

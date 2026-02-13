@@ -10,11 +10,16 @@ export default function EditContractPage() {
   const id = params.id as string;
   const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/contracts/${id}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load");
+        return r.json();
+      })
       .then(setData)
+      .catch(() => setError("Something went wrong. Please try again."))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -24,6 +29,14 @@ export default function EditContractPage() {
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-48 w-full" />
         <Skeleton className="h-48 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        {error}
       </div>
     );
   }

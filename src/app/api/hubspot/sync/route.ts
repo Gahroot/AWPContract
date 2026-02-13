@@ -37,18 +37,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { syncContract, toContractData } = await import("@/lib/hubspot");
-    const contractData = toContractData(contract);
-    const result = await syncContract(contractData, setting.value);
+    const { syncContractToHubSpot } = await import("@/lib/hubspot");
+    const result = await syncContractToHubSpot(contract);
 
-    // Save HubSpot IDs
-    await db.contract.update({
-      where: { id: contractId },
-      data: {
-        hubspotContactId: result.contactId,
-        hubspotDealId: result.dealId,
-      },
-    });
+    if (!result) {
+      return NextResponse.json(
+        { error: "HubSpot sync returned no result" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true, ...result });
   } catch (e: unknown) {

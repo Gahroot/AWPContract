@@ -30,20 +30,8 @@ export async function GET(
 
   // Dynamic import to avoid SSR issues with react-pdf
   try {
-    const { generateSalesContractPdf } = await import("@/lib/pdf");
-    const pdfBuffer = await generateSalesContractPdf(contract);
-
-    // Save to public/pdfs directory
-    const fs = await import("fs/promises");
-    const path = await import("path");
-    const pdfDir = path.join(process.cwd(), "public", "pdfs");
-    await fs.mkdir(pdfDir, { recursive: true });
-
-    const filename = `contract-${contract.contractNumber}-${Date.now()}.pdf`;
-    const filepath = path.join(pdfDir, filename);
-    await fs.writeFile(filepath, Buffer.from(pdfBuffer));
-
-    const url = `/pdfs/${filename}`;
+    const { generateAndSavePdf } = await import("@/lib/pdf");
+    const url = await generateAndSavePdf(contract);
     await db.contract.update({
       where: { id },
       data: { pdfUrl: url },

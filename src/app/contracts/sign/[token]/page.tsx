@@ -28,6 +28,7 @@ export default function ContractSignPage() {
     error?: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [signature, setSignature] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -35,8 +36,12 @@ export default function ContractSignPage() {
 
   useEffect(() => {
     fetch(`/api/contracts/public/${token}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load");
+        return r.json();
+      })
       .then(setContract)
+      .catch(() => setError("Something went wrong. Please try again."))
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -74,6 +79,15 @@ export default function ContractSignPage() {
       <div className="max-w-2xl mx-auto p-6 space-y-6">
         <Skeleton className="h-16 w-48 mx-auto" />
         <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 text-center py-20">
+        <h1 className="text-2xl font-bold mb-2">Error</h1>
+        <p className="text-muted-foreground">{error}</p>
       </div>
     );
   }

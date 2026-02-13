@@ -153,11 +153,12 @@ export function SalesContractForm({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches useAutoSave's AnyFormValues type
     async (data: Record<string, any>) => {
       if (!contractId) return;
-      await fetch(`/api/contracts/${contractId}`, {
+      const res = await fetch(`/api/contracts/${contractId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (!res.ok) throw new Error(`Auto-save failed: ${res.status}`);
     },
     [contractId]
   );

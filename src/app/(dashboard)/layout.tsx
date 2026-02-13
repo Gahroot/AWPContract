@@ -39,7 +39,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex flex-col h-full">
       <div className="p-4">
-        <Image src="/logo.png" alt="AWP" width={160} height={48} priority />
+        <Image src="/logo.png" alt="AWP" width={160} height={48} preload />
       </div>
       <Separator />
       <nav className="flex-1 p-2 space-y-1">
