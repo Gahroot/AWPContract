@@ -1,7 +1,8 @@
 // Isomorphic pricing calculator - runs on client AND server
 // Ported from ezcontract/public/js/pricing-calculator.js + class-awp-pricing.php
+// Enhanced with product code, operation, grid type, and glass type modifiers
 
-import { PRICING } from "./constants";
+import { PRICING, PRODUCTS } from "./constants";
 
 export interface LineItemInput {
   width: number;   // feet
@@ -11,6 +12,12 @@ export interface LineItemInput {
   series: string;
   frame: string;
   function: string;
+  // New product fields
+  productCode?: string;
+  operation?: string;
+  gridType?: string;
+  glassType?: string;
+  // Boolean addons
   temperedGlass: boolean;
   obscuredGlass: boolean;
   customShape: boolean;
@@ -43,6 +50,20 @@ export function calculateLineItem(item: LineItemInput): number {
   addonRate += PRICING.frame[item.frame] ?? 0;
   addonRate += PRICING.function[item.function] ?? 0;
 
+  // New pricing modifiers from product catalog
+  if (item.productCode && PRODUCTS[item.productCode]) {
+    addonRate += PRODUCTS[item.productCode].pricingModifier ?? 0;
+  }
+  if (item.operation) {
+    addonRate += PRICING.operation[item.operation] ?? 0;
+  }
+  if (item.gridType) {
+    addonRate += PRICING.gridType[item.gridType] ?? 0;
+  }
+  if (item.glassType) {
+    addonRate += PRICING.glassType[item.glassType] ?? 0;
+  }
+
   // Boolean addons
   if (item.temperedGlass) addonRate += PRICING.booleanAddons.temperedGlass;
   if (item.obscuredGlass) addonRate += PRICING.booleanAddons.obscuredGlass;
@@ -67,6 +88,20 @@ export function calculateLineItemBreakdown(item: LineItemInput): PricingBreakdow
   addonRate += PRICING.series[item.series] ?? 0;
   addonRate += PRICING.frame[item.frame] ?? 0;
   addonRate += PRICING.function[item.function] ?? 0;
+
+  // New pricing modifiers from product catalog
+  if (item.productCode && PRODUCTS[item.productCode]) {
+    addonRate += PRODUCTS[item.productCode].pricingModifier ?? 0;
+  }
+  if (item.operation) {
+    addonRate += PRICING.operation[item.operation] ?? 0;
+  }
+  if (item.gridType) {
+    addonRate += PRICING.gridType[item.gridType] ?? 0;
+  }
+  if (item.glassType) {
+    addonRate += PRICING.glassType[item.glassType] ?? 0;
+  }
 
   if (item.temperedGlass) addonRate += PRICING.booleanAddons.temperedGlass;
   if (item.obscuredGlass) addonRate += PRICING.booleanAddons.obscuredGlass;

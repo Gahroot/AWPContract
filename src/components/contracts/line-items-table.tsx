@@ -21,10 +21,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Trash2 } from "lucide-react";
-import { FORM_OPTIONS, BOOLEAN_ADDON_LABELS } from "@/lib/constants";
+import {
+  FORM_OPTIONS,
+  BOOLEAN_ADDON_LABELS,
+  getProductsByMarket,
+  PRODUCTS,
+  OPERATIONS,
+} from "@/lib/constants";
 import { calculateLineItem, formatCurrency } from "@/lib/pricing";
 import { type LineItemFormValues } from "@/lib/validations";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const BOOLEAN_FIELDS = [
   "temperedGlass",
@@ -45,6 +51,12 @@ const defaultLineItem = {
   series: "Patriot",
   frame: "Nail Fin",
   function: "Slider",
+  // New product fields
+  productCode: "",
+  operation: "",
+  gridType: "",
+  glassType: "",
+  // Boolean addons
   temperedGlass: false,
   obscuredGlass: false,
   customShape: false,
@@ -77,6 +89,12 @@ export function LineItemsTable() {
         series: item.series || "Patriot",
         frame: item.frame || "Nail Fin",
         function: item.function || "Slider",
+        // New product fields
+        productCode: item.productCode,
+        operation: item.operation,
+        gridType: item.gridType,
+        glassType: item.glassType,
+        // Boolean addons
         temperedGlass: !!item.temperedGlass,
         obscuredGlass: !!item.obscuredGlass,
         customShape: !!item.customShape,
@@ -102,17 +120,20 @@ export function LineItemsTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-[120px]">Location</TableHead>
-              <TableHead className="min-w-[100px]">Type</TableHead>
+              <TableHead className="min-w-[100px]">Location</TableHead>
+              <TableHead className="min-w-[160px]">Product</TableHead>
               <TableHead className="w-16">Qty</TableHead>
               <TableHead className="w-20">Width (ft)</TableHead>
               <TableHead className="w-20">Height (ft)</TableHead>
-              <TableHead className="min-w-[120px]">Color</TableHead>
-              <TableHead className="min-w-[140px]">Series</TableHead>
-              <TableHead className="min-w-[110px]">Frame</TableHead>
-              <TableHead className="min-w-[120px]">Function</TableHead>
+              <TableHead className="min-w-[100px]">Color</TableHead>
+              <TableHead className="min-w-[100px]">Series</TableHead>
+              <TableHead className="min-w-[100px]">Operation</TableHead>
+              <TableHead className="min-w-[100px]">Grid Type</TableHead>
+              <TableHead className="min-w-[100px]">Glass Type</TableHead>
+              <TableHead className="min-w-[100px]">Frame</TableHead>
+              <TableHead className="min-w-[100px]">Function</TableHead>
               {BOOLEAN_FIELDS.map((field) => (
-                <TableHead key={field} className="w-16 text-center text-xs">
+                <TableHead key={field} className="w-14 text-center text-xs">
                   {BOOLEAN_ADDON_LABELS[field]}
                 </TableHead>
               ))}
@@ -130,7 +151,7 @@ export function LineItemsTable() {
               />
             ))}
             <TableRow>
-              <TableCell colSpan={BOOLEAN_FIELDS.length + 11}>
+              <TableCell colSpan={BOOLEAN_FIELDS.length + 15}>
                 <Button
                   type="button"
                   variant="outline"
@@ -162,6 +183,49 @@ function LineItemRow({
   const { register, control, setValue, getValues } = useFormContext();
 
   const price = useWatch({ control, name: `lineItems.${index}.price` });
+  const productCode = useWatch({ control, name: `lineItems.${index}.productCode` });
+
+  // Get available products for SLC market (MVP)
+  const [products] = useState(() => getProductsByMarket("SLC"));
+  const [selectedProduct, setSelectedProduct] = useState(
+    productCode ? PRODUCTS[productCode] : null
+  );
+
+  // Handle product code change - auto-fill series, function, and set valid options
+  const handleProductCodeChange = (code: string) => {
+    setValue(`lineItems.${index}.productCode`, code, { shouldDirty: true });
+    const product = PRODUCTS[code];
+    setSelectedProduct(product || null);
+
+    if (product) {
+      // Auto-fill series and function
+      setValue(`lineItems.${index}.series`, product.series, { shouldDirty: true });
+      setValue(`lineItems.${index}.function`, product.function, { shouldDirty: true });
+      setValue(`lineItems.${index}.type`, product.type, { shouldDirty: true });
+
+      // Set default operation if product has only one option
+      if (product.operations.length === 1) {
+        setValue(`lineItems.${index}.operation`, product.operations[0], { shouldDirty: true });
+      }
+
+      // Set default grid type if product has only one option
+      if (product.grids.length === 1) {
+        setValue(`lineItems.${index}.gridType`, product.grids[0], { shouldDirty: true });
+      }
+
+      // Set default glass type if product has only one option
+      if (product.glassTypes.length === 1) {
+        setValue(`lineItems.${index}.glassType`, product.glassTypes[0], { shouldDirty: true });
+      }
+    }
+  };
+
+  // Get valid operations for selected product
+  const validOperations = selectedProduct?.operations || [];
+  // Get valid grid types for selected product
+  const validGridTypes = selectedProduct?.grids || [];
+  // Get valid glass types for selected product
+  const validGlassTypes = selectedProduct?.glassTypes || [];
 
   return (
     <TableRow>
@@ -169,25 +233,26 @@ function LineItemRow({
         <Input
           {...register(`lineItems.${index}.location`)}
           placeholder="e.g. Kitchen"
-          className="min-w-[100px]"
+          className="min-w-[90px]"
         />
       </TableCell>
       <TableCell>
         <Select
-          value={getValues(`lineItems.${index}.type`) || "Window"}
-          onValueChange={(v) =>
-            setValue(`lineItems.${index}.type`, v, { shouldDirty: true })
-          }
+          value={getValues(`lineItems.${index}.productCode`) || ""}
+          onValueChange={handleProductCodeChange}
         >
-          <SelectTrigger className="min-w-[90px]">
-            <SelectValue />
+          <SelectTrigger className="min-w-[150px]">
+            <SelectValue placeholder="Select product" />
           </SelectTrigger>
           <SelectContent>
-            {FORM_OPTIONS.type.map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
-              </SelectItem>
-            ))}
+            <SelectItem value="">-- None --</SelectItem>
+            {Object.values(products)
+              .sort((a, b) => a.series.localeCompare(b.series))
+              .map((p) => (
+                <SelectItem key={p.code} value={p.code}>
+                  {p.code}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </TableCell>
@@ -196,7 +261,7 @@ function LineItemRow({
           {...register(`lineItems.${index}.qty`, { valueAsNumber: true })}
           type="number"
           min={1}
-          className="w-16"
+          className="w-14"
         />
       </TableCell>
       <TableCell>
@@ -205,7 +270,7 @@ function LineItemRow({
           type="number"
           step="0.01"
           min={0}
-          className="w-20"
+          className="w-16"
         />
       </TableCell>
       <TableCell>
@@ -214,7 +279,7 @@ function LineItemRow({
           type="number"
           step="0.01"
           min={0}
-          className="w-20"
+          className="w-16"
         />
       </TableCell>
       <TableCell>
@@ -224,7 +289,7 @@ function LineItemRow({
             setValue(`lineItems.${index}.color`, v, { shouldDirty: true })
           }
         >
-          <SelectTrigger className="min-w-[100px]">
+          <SelectTrigger className="min-w-[90px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -237,21 +302,82 @@ function LineItemRow({
         </Select>
       </TableCell>
       <TableCell>
+        <Input
+          {...register(`lineItems.${index}.series`)}
+          placeholder="Series"
+          className="min-w-[90px] bg-muted"
+          readOnly
+        />
+      </TableCell>
+      <TableCell>
         <Select
-          value={getValues(`lineItems.${index}.series`) || "Patriot"}
+          value={getValues(`lineItems.${index}.operation`) || ""}
           onValueChange={(v) =>
-            setValue(`lineItems.${index}.series`, v, { shouldDirty: true })
+            setValue(`lineItems.${index}.operation`, v, { shouldDirty: true })
           }
+          disabled={!selectedProduct || validOperations.length === 0}
         >
-          <SelectTrigger className="min-w-[120px]">
-            <SelectValue />
+          <SelectTrigger className="min-w-[90px]">
+            <SelectValue placeholder={validOperations.length === 0 ? "N/A" : "Select"} />
           </SelectTrigger>
           <SelectContent>
-            {FORM_OPTIONS.series.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
+            {validOperations.length === 0 ? (
+              <SelectItem value="N/A">N/A</SelectItem>
+            ) : (
+              validOperations.map((op) => (
+                <SelectItem key={op} value={op}>
+                  {op} - {OPERATIONS[op]?.description}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
+        <Select
+          value={getValues(`lineItems.${index}.gridType`) || ""}
+          onValueChange={(v) =>
+            setValue(`lineItems.${index}.gridType`, v, { shouldDirty: true })
+          }
+          disabled={!selectedProduct || validGridTypes.length === 0}
+        >
+          <SelectTrigger className="min-w-[90px]">
+            <SelectValue placeholder="Select" />
+          </SelectTrigger>
+          <SelectContent>
+            {validGridTypes.length === 0 ? (
+              <SelectItem value="">None</SelectItem>
+            ) : (
+              validGridTypes.map((gt) => (
+                <SelectItem key={gt} value={gt}>
+                  {gt}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
+        <Select
+          value={getValues(`lineItems.${index}.glassType`) || ""}
+          onValueChange={(v) =>
+            setValue(`lineItems.${index}.glassType`, v, { shouldDirty: true })
+          }
+          disabled={!selectedProduct || validGlassTypes.length === 0}
+        >
+          <SelectTrigger className="min-w-[90px]">
+            <SelectValue placeholder="Select" />
+          </SelectTrigger>
+          <SelectContent>
+            {validGlassTypes.length === 0 ? (
+              <SelectItem value="">None</SelectItem>
+            ) : (
+              validGlassTypes.map((gt) => (
+                <SelectItem key={gt} value={gt}>
+                  {gt}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
       </TableCell>
@@ -262,7 +388,7 @@ function LineItemRow({
             setValue(`lineItems.${index}.frame`, v, { shouldDirty: true })
           }
         >
-          <SelectTrigger className="min-w-[100px]">
+          <SelectTrigger className="min-w-[90px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -275,23 +401,12 @@ function LineItemRow({
         </Select>
       </TableCell>
       <TableCell>
-        <Select
-          value={getValues(`lineItems.${index}.function`) || "Slider"}
-          onValueChange={(v) =>
-            setValue(`lineItems.${index}.function`, v, { shouldDirty: true })
-          }
-        >
-          <SelectTrigger className="min-w-[100px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FORM_OPTIONS.function.map((f) => (
-              <SelectItem key={f} value={f}>
-                {f}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Input
+          {...register(`lineItems.${index}.function`)}
+          placeholder="Function"
+          className="min-w-[90px] bg-muted"
+          readOnly
+        />
       </TableCell>
       {BOOLEAN_FIELDS.map((boolField) => (
         <TableCell key={boolField} className="text-center">

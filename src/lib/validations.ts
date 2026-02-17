@@ -12,6 +12,12 @@ export const lineItemSchema = z.object({
   series: z.string().default("Patriot"),
   frame: z.string().default("Nail Fin"),
   function: z.string().default("Slider"),
+  // New product fields
+  productCode: z.string().optional(),
+  operation: z.string().optional(),
+  gridType: z.string().optional(),
+  glassType: z.string().optional(),
+  // Boolean addons
   temperedGlass: z.boolean().default(false),
   obscuredGlass: z.boolean().default(false),
   customShape: z.boolean().default(false),

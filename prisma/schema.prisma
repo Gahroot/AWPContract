@@ -35,6 +35,7 @@ model User {
   password      String?
   image         String?
   role          Role      @default(SALESMAN)
+  market        String    @default("SLC")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -173,6 +174,12 @@ model LineItem {
   series        String   @default("Patriot")
   frame         String   @default("Nail Fin")
   function      String   @default("Slider")
+
+  // Product fields
+  productCode  String?
+  operation    String?
+  gridType     String?
+  glassType    String?
 
   // Boolean addons
   temperedGlass  Boolean @default(false)

@@ -22,6 +22,13 @@ interface PdfLineItem {
   color: string;
   series: string;
   price: number;
+  // New product fields
+  productCode?: string | null;
+  operation?: string | null;
+  gridType?: string | null;
+  glassType?: string | null;
+  frame?: string | null;
+  function?: string | null;
   [key: string]: unknown;
 }
 
@@ -46,39 +53,6 @@ interface PdfContract {
   contractorSignatureDate: string | Date | null;
   customerSignature: string | null;
   customerSignatureDate: string | Date | null;
-}
-
-interface PdfAddendumProduct {
-  type: string;
-  qty: number;
-  width: number;
-  height: number;
-  notes?: string;
-}
-
-interface PdfAddendum {
-  products?: PdfAddendumProduct[];
-  interiorColor: string | null;
-  exteriorColor: string | null;
-  contractorSignature: string | null;
-  customerSignature: string | null;
-}
-
-interface PdfChangeOrder {
-  changeOrderNumber: string;
-  originalPrice: number;
-  changesDescription: string | null;
-  priceChangeType: string;
-  priceChangeAmount: number;
-  newPrice: number;
-  newBalanceDue: number;
-  customerSignature: string | null;
-  awpSignature: string | null;
-}
-
-interface PdfContractBase {
-  contractNumber?: string;
-  customerName: string | null;
 }
 
 const styles = StyleSheet.create({
@@ -216,6 +190,18 @@ function SalesContractDocument({ contract }: { contract: PdfContract }) {
       .map(([, label]) => label)
       .join(", ");
 
+  const getProductOptions = (item: PdfLineItem) => {
+    const options: string[] = [];
+    if (item.function) options.push(item.function);
+    if (item.operation) options.push(`Op: ${item.operation}`);
+    if (item.gridType) options.push(item.gridType);
+    if (item.glassType) options.push(item.glassType);
+    if (item.frame && item.frame !== "Nail Fin") options.push(item.frame);
+    const addons = booleanAddons(item);
+    if (addons) options.push(addons);
+    return options.length > 0 ? options.join(", ") : "\u2014";
+  };
+
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
@@ -311,7 +297,7 @@ function SalesContractDocument({ contract }: { contract: PdfContract }) {
                 </Text>
                 <Text style={styles.col5}>{item.color}</Text>
                 <Text style={styles.col6}>{item.series}</Text>
-                <Text style={styles.col7}>{booleanAddons(item) || "\u2014"}</Text>
+                <Text style={styles.col7}>{getProductOptions(item)}</Text>
                 <Text style={styles.col8}>{formatCurrency(item.price)}</Text>
               </View>
             ))}
@@ -402,219 +388,6 @@ function SalesContractDocument({ contract }: { contract: PdfContract }) {
   );
 }
 
-// Addendum PDF
-function AddendumDocument({
-  addendum,
-  contract,
-}: {
-  addendum: PdfAddendum;
-  contract: PdfContractBase;
-}) {
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.companyName}>Advanced Window Products</Text>
-            <Text style={styles.companyInfo}>Contract Addendum</Text>
-          </View>
-        </View>
-
-        <Text style={styles.title}>ADDENDUM</Text>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Parent Contract</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Contract #:</Text>
-            <Text style={styles.value}>
-              {contract.contractNumber?.slice(0, 8)}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Customer:</Text>
-            <Text style={styles.value}>{contract.customerName || ""}</Text>
-          </View>
-        </View>
-
-        {addendum.products && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Products</Text>
-            {addendum.products.map((p: PdfAddendumProduct, i: number) => (
-              <View key={i} style={styles.row}>
-                <Text style={styles.value}>
-                  {p.type} - Qty: {p.qty}, Size: {p.width}x{p.height}
-                  {p.notes ? ` (${p.notes})` : ""}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Colors</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Interior:</Text>
-            <Text style={styles.value}>
-              {addendum.interiorColor || "N/A"}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Exterior:</Text>
-            <Text style={styles.value}>
-              {addendum.exteriorColor || "N/A"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Signatures */}
-        <View style={styles.signatureSection}>
-          <View style={styles.signatureBlock}>
-            {addendum.contractorSignature ? (
-              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
-              <Image
-                src={addendum.contractorSignature}
-                style={styles.signatureImage}
-              />
-            ) : (
-              <View style={styles.signatureLine} />
-            )}
-            <Text style={styles.signatureLabel}>Contractor Signature</Text>
-          </View>
-          <View style={styles.signatureBlock}>
-            {addendum.customerSignature ? (
-              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
-              <Image
-                src={addendum.customerSignature}
-                style={styles.signatureImage}
-              />
-            ) : (
-              <View style={styles.signatureLine} />
-            )}
-            <Text style={styles.signatureLabel}>Customer Signature</Text>
-          </View>
-        </View>
-      </Page>
-    </Document>
-  );
-}
-
-// Change Order PDF
-function ChangeOrderDocument({
-  changeOrder,
-  contract,
-}: {
-  changeOrder: PdfChangeOrder;
-  contract: PdfContractBase;
-}) {
-  return (
-    <Document>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.companyName}>Advanced Window Products</Text>
-            <Text style={styles.companyInfo}>Change Order</Text>
-          </View>
-        </View>
-
-        <Text style={styles.title}>
-          CHANGE ORDER - {changeOrder.changeOrderNumber}
-        </Text>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Original Contract</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Contract #:</Text>
-            <Text style={styles.value}>
-              {contract.contractNumber?.slice(0, 8)}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Customer:</Text>
-            <Text style={styles.value}>{contract.customerName || ""}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Original Price:</Text>
-            <Text style={styles.value}>
-              {formatCurrency(changeOrder.originalPrice)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description of Changes</Text>
-          <Text>{changeOrder.changesDescription || ""}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Price Adjustment</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Change Type:</Text>
-            <Text style={styles.value}>
-              {changeOrder.priceChangeType === "no_change"
-                ? "No Change"
-                : changeOrder.priceChangeType === "increase"
-                  ? "Increase"
-                  : "Decrease"}
-            </Text>
-          </View>
-          {changeOrder.priceChangeType !== "no_change" && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Amount:</Text>
-              <Text style={styles.value}>
-                {formatCurrency(changeOrder.priceChangeAmount)}
-              </Text>
-            </View>
-          )}
-          <View style={styles.row}>
-            <Text style={[styles.label, { fontWeight: "bold" }]}>
-              New Price:
-            </Text>
-            <Text style={[styles.value, { fontWeight: "bold" }]}>
-              {formatCurrency(changeOrder.newPrice)}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={[styles.label, { fontWeight: "bold" }]}>
-              New Balance:
-            </Text>
-            <Text style={[styles.value, { fontWeight: "bold" }]}>
-              {formatCurrency(changeOrder.newBalanceDue)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Signatures */}
-        <View style={styles.signatureSection}>
-          <View style={styles.signatureBlock}>
-            {changeOrder.customerSignature ? (
-              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
-              <Image
-                src={changeOrder.customerSignature}
-                style={styles.signatureImage}
-              />
-            ) : (
-              <View style={styles.signatureLine} />
-            )}
-            <Text style={styles.signatureLabel}>Customer Approval</Text>
-          </View>
-          <View style={styles.signatureBlock}>
-            {changeOrder.awpSignature ? (
-              // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image has no alt prop
-              <Image
-                src={changeOrder.awpSignature}
-                style={styles.signatureImage}
-              />
-            ) : (
-              <View style={styles.signatureLine} />
-            )}
-            <Text style={styles.signatureLabel}>AWP Approval</Text>
-          </View>
-        </View>
-      </Page>
-    </Document>
-  );
-}
-
 // Generate PDF and save to public/pdfs directory
 export async function generateAndSavePdf(
   contract: PdfContract & { id?: string; contractNumber?: string }
@@ -644,32 +417,3 @@ export async function generateSalesContractPdf(
   return Buffer.concat(chunks);
 }
 
-export async function generateAddendumPdf(
-  addendum: PdfAddendum,
-  contract: PdfContractBase
-): Promise<Uint8Array> {
-  const stream = await ReactPDF.renderToStream(
-    <AddendumDocument addendum={addendum} contract={contract} />
-  );
-
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) {
-    chunks.push(Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
-}
-
-export async function generateChangeOrderPdf(
-  changeOrder: PdfChangeOrder,
-  contract: PdfContractBase
-): Promise<Uint8Array> {
-  const stream = await ReactPDF.renderToStream(
-    <ChangeOrderDocument changeOrder={changeOrder} contract={contract} />
-  );
-
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) {
-    chunks.push(Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks);
-}
