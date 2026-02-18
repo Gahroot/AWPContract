@@ -15,6 +15,7 @@ import {
   MoreHorizontal,
   FileSignature,
   FileDiff,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -309,6 +310,24 @@ function DashboardContent() {
                               <FileDiff className="h-4 w-4 mr-2" />
                               New Change Order
                             </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/contracts/${c.id}/pdf`);
+                                if (res.ok) {
+                                  const { url } = await res.json();
+                                  window.open(url, "_blank");
+                                } else {
+                                  console.error("PDF generation failed");
+                                }
+                              } catch (e) {
+                                console.error("PDF generation error:", e);
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export PDF
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
