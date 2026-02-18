@@ -21,7 +21,7 @@ function makeItem(overrides: Partial<LineItemInput> = {}): LineItemInput {
     color: "White",          // rate 0
     series: "Patriot",       // rate 0
     frame: "Nail Fin",       // rate 0
-    function: "Slider",      // rate 0
+    function: "Single Hung", // rate 0
     temperedGlass: false,
     obscuredGlass: false,
     customShape: false,
@@ -170,14 +170,16 @@ describe("calculateLineItem", () => {
 
   // --- Function options ---
   describe("function options", () => {
-    it("Slider has rate 0 (no cost change)", () => {
-      expect(PRICING.function["Slider"]).toBe(0);
-      expect(calculateLineItem(makeItem({ function: "Slider" }))).toBe(950.4);
+    it("Slider adds $0.02/sqIn", () => {
+      expect(PRICING.function["Slider"]).toBe(0.02);
+      // addon = 1728 * 0.02 = 34.56, total = 950.40 + 34.56 = 984.96
+      expect(calculateLineItem(makeItem({ function: "Slider" }))).toBe(984.96);
     });
 
-    it("Picture has rate 0 (no cost change)", () => {
-      expect(PRICING.function["Picture"]).toBe(0);
-      expect(calculateLineItem(makeItem({ function: "Picture" }))).toBe(950.4);
+    it("Picture adds $0.01/sqIn", () => {
+      expect(PRICING.function["Picture"]).toBe(0.01);
+      // addon = 1728 * 0.01 = 17.28, total = 950.40 + 17.28 = 967.68
+      expect(calculateLineItem(makeItem({ function: "Picture" }))).toBe(967.68);
     });
 
     it("Eyebrow adds $0.02/sqIn", () => {
@@ -199,10 +201,10 @@ describe("calculateLineItem", () => {
 
   // --- Boolean addons individually ---
   describe("boolean addons (individually)", () => {
-    it("temperedGlass adds $0.01/sqIn", () => {
-      expect(PRICING.booleanAddons.temperedGlass).toBe(0.01);
-      // addon = 1728 * 0.01 = 17.28, total = 950.40 + 17.28 = 967.68
-      expect(calculateLineItem(makeItem({ temperedGlass: true }))).toBe(967.68);
+    it("temperedGlass adds $0.02/sqIn", () => {
+      expect(PRICING.booleanAddons.temperedGlass).toBe(0.02);
+      // addon = 1728 * 0.02 = 34.56, total = 950.40 + 34.56 = 984.96
+      expect(calculateLineItem(makeItem({ temperedGlass: true }))).toBe(984.96);
     });
 
     it("obscuredGlass adds $0.01/sqIn", () => {
@@ -226,37 +228,37 @@ describe("calculateLineItem", () => {
       expect(calculateLineItem(makeItem({ coated: true }))).toBe(967.68);
     });
 
-    it("awpShutterRnr adds $0.02/sqIn", () => {
-      expect(PRICING.booleanAddons.awpShutterRnr).toBe(0.02);
-      // addon = 1728 * 0.02 = 34.56, total = 950.40 + 34.56 = 984.96
-      expect(calculateLineItem(makeItem({ awpShutterRnr: true }))).toBe(984.96);
+    it("awpShutterRnr adds $0.01/sqIn", () => {
+      expect(PRICING.booleanAddons.awpShutterRnr).toBe(0.01);
+      // addon = 1728 * 0.01 = 17.28, total = 950.40 + 17.28 = 967.68
+      expect(calculateLineItem(makeItem({ awpShutterRnr: true }))).toBe(967.68);
     });
   });
 
   // --- Multiple boolean addons combined ---
   describe("multiple boolean addons combined", () => {
-    it("temperedGlass + obscuredGlass (0.01 + 0.01 = 0.02/sqIn)", () => {
-      // addon = 1728 * 0.02 = 34.56, total = 950.40 + 34.56 = 984.96
+    it("temperedGlass + obscuredGlass (0.02 + 0.01 = 0.03/sqIn)", () => {
+      // addon = 1728 * 0.03 = 51.84, total = 950.40 + 51.84 = 1002.24
       const result = calculateLineItem(
         makeItem({ temperedGlass: true, obscuredGlass: true })
       );
-      expect(result).toBe(984.96);
+      expect(result).toBe(1002.24);
     });
 
-    it("customShape + awpShutterRnr (0.02 + 0.02 = 0.04/sqIn)", () => {
-      // addon = 1728 * 0.04 = 69.12, total = 950.40 + 69.12 = 1019.52
+    it("customShape + awpShutterRnr (0.02 + 0.01 = 0.03/sqIn)", () => {
+      // addon = 1728 * 0.03 = 51.84, total = 950.40 + 51.84 = 1002.24
       const result = calculateLineItem(
         makeItem({ customShape: true, awpShutterRnr: true })
       );
-      expect(result).toBe(1019.52);
+      expect(result).toBe(1002.24);
     });
 
-    it("wrap + coated + temperedGlass (0.01 + 0.01 + 0.01 = 0.03/sqIn)", () => {
-      // addon = 1728 * 0.03 = 51.84, total = 950.40 + 51.84 = 1002.24
+    it("wrap + coated + temperedGlass (0.01 + 0.01 + 0.02 = 0.04/sqIn)", () => {
+      // addon = 1728 * 0.04 = 69.12, total = 950.40 + 69.12 = 1019.52
       const result = calculateLineItem(
         makeItem({ wrap: true, coated: true, temperedGlass: true })
       );
-      expect(result).toBe(1002.24);
+      expect(result).toBe(1019.52);
     });
   });
 
@@ -442,23 +444,23 @@ describe("calculateLineItemBreakdown", () => {
         series: "High Performance", // 0.01
         frame: "Frame Over",    // -0.01
         function: "Eyebrow",    // 0.02
-        temperedGlass: true,    // 0.01
+        temperedGlass: true,    // 0.02
         wrap: true,             // 0.01
       })
     );
     // dropdown rates: 0.01 + 0.01 + (-0.01) + 0.02 = 0.03
-    // boolean rates: 0.01 + 0.01 = 0.02
-    // total addon rate = 0.05
+    // boolean rates: 0.02 + 0.01 = 0.03
+    // total addon rate = 0.06
     // sqIn = 1728
     // basePrice = 1728 * 0.55 = 950.40
-    // addonTotal = 1728 * 0.05 = 86.40
-    // unitPrice = 950.40 + 86.40 = 1036.80
-    // lineTotal = 1036.80 * 1 = 1036.80
+    // addonTotal = 1728 * 0.06 = 103.68
+    // unitPrice = 950.40 + 103.68 = 1054.08
+    // lineTotal = 1054.08 * 1 = 1054.08
     expect(breakdown.sqIn).toBe(1728);
     expect(breakdown.basePrice).toBe(950.4);
-    expect(breakdown.addonTotal).toBe(86.4);
-    expect(breakdown.unitPrice).toBe(1036.8);
-    expect(breakdown.lineTotal).toBe(1036.8);
+    expect(breakdown.addonTotal).toBe(103.68);
+    expect(breakdown.unitPrice).toBe(1054.08);
+    expect(breakdown.lineTotal).toBe(1054.08);
   });
 
   it("breakdown with zero dimensions returns all zeros", () => {

@@ -12,21 +12,24 @@ Next.js 16 + React 19 + TypeScript 5 | Bun + Turbopack | Prisma 7 + PostgreSQL 1
 src/
 ├── app/                        # Next.js App Router
 │   ├── (auth)/login/           # Login page
-│   ├── (dashboard)/            # Protected routes (contracts, settings)
+│   ├── (dashboard)/            # Protected routes
 │   │   ├── contracts/          # List, new, [id], [id]/edit
 │   │   │   └── [id]/           # Detail, addendum/new, change-order/new
-│   │   └── settings/           # App settings
+│   │   ├── commissions/        # Commission management
+│   │   └── settings/           # App settings + commissions config
 │   ├── contracts/              # Public routes (sign/[token], view/[token])
 │   └── api/                    # API routes
 │       ├── auth/               # NextAuth endpoints
 │       ├── contracts/          # CRUD, PDF, submit, addendum, change-order
-│       ├── hubspot/            # CRM sync + test
+│       ├── commissions/        # Config, recalculate, export
+│       ├── hubspot/            # CRM sync (deals, addendums, change-orders)
 │       ├── pricing/            # Pricing calculation
 │       └── settings/           # Settings API
 ├── lib/                        # Business logic & utilities
 │   ├── auth.ts                 # NextAuth v5 config
 │   ├── db.ts                   # PrismaClient + PrismaPg adapter
 │   ├── pricing.ts              # Isomorphic pricing calculator
+│   ├── commission.ts           # Commission calculation logic
 │   ├── constants.ts            # Pricing matrix + form options
 │   ├── validations.ts          # Zod schemas (3 contract types)
 │   ├── hubspot.ts              # HubSpot CRM wrapper
@@ -34,12 +37,13 @@ src/
 │   └── hooks/                  # use-auto-save, use-pricing-calculator
 ├── components/
 │   ├── contracts/              # Form components (sales, addendum, change-order)
+│   ├── commissions/            # Commission tables, editors, summary
 │   ├── shared/                 # Signature pad, currency input, auto-save
 │   └── ui/                     # shadcn/ui components
 ├── types/                      # TypeScript augmentations (next-auth.d.ts)
 └── generated/prisma/           # Prisma generated client (client.ts)
 prisma/
-├── schema.prisma               # DB schema (User, Contract, LineItem, Addendum, ChangeOrder)
+├── schema.prisma               # DB schema (User, Contract, LineItem, Addendum, ChangeOrder, Commission*)
 └── seed.ts                     # Seed script (admin + sales users)
 ```
 

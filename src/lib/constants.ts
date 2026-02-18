@@ -1493,8 +1493,8 @@ export const PRICING = {
   } as Record<string, number>,
 
   function: {
-    Slider: 0,
-    Picture: 0,
+    Slider: 0.02,
+    Picture: 0.01,
     Eyebrow: 0.02,
     Vent: 0.02,
     "Double Vent": 0.02,
@@ -1550,12 +1550,12 @@ export const PRICING = {
   } as Record<string, number>,
 
   booleanAddons: {
-    temperedGlass: 0.01,
+    temperedGlass: 0.02,
     obscuredGlass: 0.01,
     customShape: 0.02,
     wrap: 0.01,
     coated: 0.01,
-    awpShutterRnr: 0.02,
+    awpShutterRnr: 0.01,
   } as Record<string, number>,
 };
 

@@ -14,7 +14,7 @@ function makeLineItem(overrides: Record<string, unknown> = {}) {
     color: "White",
     series: "Patriot",
     frame: "Nail Fin",
-    function: "Slider",
+    function: "Single Hung",
     temperedGlass: false,
     obscuredGlass: false,
     customShape: false,
@@ -301,14 +301,15 @@ describe("POST /api/pricing/calculate", () => {
   // Function addons
   // ==============================================================
   describe("function addons", () => {
-    it("Slider adds 0", async () => {
+    it("Slider adds $0.02/sqIn", async () => {
+      // SqIn=1728, addon=1728*0.02=34.56 => 950.40+34.56=984.96
       const res = await postPricing({
         lineItems: [makeLineItem({ function: "Slider" })],
         discount: 0,
         downPayment: 0,
       });
       const data = await res.json();
-      expect(data.itemPrices[0]).toBe(950.4);
+      expect(data.itemPrices[0]).toBe(984.96);
     });
 
     it("Eyebrow adds $0.02/sqIn", async () => {
@@ -327,15 +328,15 @@ describe("POST /api/pricing/calculate", () => {
   // Boolean addons
   // ==============================================================
   describe("boolean addons", () => {
-    it("temperedGlass adds $0.01/sqIn", async () => {
-      // SqIn=1728, addon=17.28 => 950.40+17.28=967.68
+    it("temperedGlass adds $0.02/sqIn", async () => {
+      // SqIn=1728, addon=34.56 => 950.40+34.56=984.96
       const res = await postPricing({
         lineItems: [makeLineItem({ temperedGlass: true })],
         discount: 0,
         downPayment: 0,
       });
       const data = await res.json();
-      expect(data.itemPrices[0]).toBe(967.68);
+      expect(data.itemPrices[0]).toBe(984.96);
     });
 
     it("obscuredGlass adds $0.01/sqIn", async () => {
@@ -379,15 +380,15 @@ describe("POST /api/pricing/calculate", () => {
       expect(data.itemPrices[0]).toBe(967.68);
     });
 
-    it("awpShutterRnr adds $0.02/sqIn", async () => {
-      // SqIn=1728, addon=34.56 => 950.40+34.56=984.96
+    it("awpShutterRnr adds $0.01/sqIn", async () => {
+      // SqIn=1728, addon=17.28 => 950.40+17.28=967.68
       const res = await postPricing({
         lineItems: [makeLineItem({ awpShutterRnr: true })],
         discount: 0,
         downPayment: 0,
       });
       const data = await res.json();
-      expect(data.itemPrices[0]).toBe(984.96);
+      expect(data.itemPrices[0]).toBe(967.68);
     });
   });
 
@@ -396,12 +397,12 @@ describe("POST /api/pricing/calculate", () => {
   // ==============================================================
   describe("stacked addons", () => {
     it("combines multiple addon rates correctly", async () => {
-      // Eclipse(+0.01) + High Performance(+0.01) + Eyebrow(+0.02) + temperedGlass(+0.01) + wrap(+0.01)
-      // Total addon rate = 0.06
+      // Eclipse(+0.01) + High Performance(+0.01) + Eyebrow(+0.02) + temperedGlass(+0.02) + wrap(+0.01)
+      // Total addon rate = 0.07
       // SqIn = 3*4*144 = 1728
       // base = 1728 * 0.55 = 950.40
-      // addons = 1728 * 0.06 = 103.68
-      // unitPrice = 950.40 + 103.68 = 1054.08
+      // addons = 1728 * 0.07 = 120.96
+      // unitPrice = 950.40 + 120.96 = 1071.36
       const res = await postPricing({
         lineItems: [
           makeLineItem({
@@ -416,7 +417,7 @@ describe("POST /api/pricing/calculate", () => {
         downPayment: 0,
       });
       const data = await res.json();
-      expect(data.itemPrices[0]).toBe(1054.08);
+      expect(data.itemPrices[0]).toBe(1071.36);
     });
 
     it("all boolean addons enabled at once", async () => {
@@ -501,11 +502,11 @@ describe("POST /api/pricing/calculate", () => {
       //         base = 576 * 0.55 = 316.80
       //         addons = 576 * 0.01 = 5.76
       //         lineTotal = 322.56
-      // Item 3: 5x5, qty=2, + temperedGlass(+0.01) => 5*5*144 = 3600 sqIn
+      // Item 3: 5x5, qty=2, + temperedGlass(+0.02) => 5*5*144 = 3600 sqIn
       //         base = 3600 * 0.55 = 1980.00
-      //         addons = 3600 * 0.01 = 36.00
-      //         unitPrice = 2016.00, qty=2 => 4032.00
-      // total = 950.40 + 322.56 + 4032.00 = 5304.96
+      //         addons = 3600 * 0.02 = 72.00
+      //         unitPrice = 2052.00, qty=2 => 4104.00
+      // total = 950.40 + 322.56 + 4104.00 = 5376.96
       const res = await postPricing({
         lineItems: [
           makeLineItem(),
@@ -519,8 +520,8 @@ describe("POST /api/pricing/calculate", () => {
       const data = await res.json();
       expect(data.itemPrices[0]).toBe(950.4);
       expect(data.itemPrices[1]).toBe(322.56);
-      expect(data.itemPrices[2]).toBe(4032);
-      expect(data.total).toBe(round2(950.4 + 322.56 + 4032));
+      expect(data.itemPrices[2]).toBe(4104);
+      expect(data.total).toBe(round2(950.4 + 322.56 + 4104));
     });
   });
 
@@ -679,7 +680,7 @@ describe("POST /api/pricing/calculate", () => {
       const basePrice = sqIn * PRICING.baseRate; // 3456 * 0.55 = 1900.80
 
       // Eclipse = 0.01, Signature = 0.01, Flush Fin = 0, Vent = 0.02
-      // temperedGlass = 0.01, customShape = 0.02, coated = 0.01
+      // temperedGlass = 0.02, customShape = 0.02, coated = 0.01
       const addonRate =
         PRICING.color["Eclipse"] +
         PRICING.series["Signature"] +
@@ -834,8 +835,8 @@ describe("POST /api/pricing/calculate", () => {
 
       // Window 2: 2x3, Eclipse/HighPerf/FlushFin/Picture, qty=3
       //   SqIn = 864, base = 864*0.55 = 475.20
-      //   addon = 864 * (0.01+0.01+0+0) = 864 * 0.02 = 17.28
-      //   unitPrice = 492.48, lineTotal = 492.48 * 3 = 1477.44
+      //   addon = 864 * (0.01+0.01+0+0.01) = 864 * 0.03 = 25.92
+      //   unitPrice = 501.12, lineTotal = 501.12 * 3 = 1503.36
 
       // Window 3: 4x5, DarkTan/Autograph/FrameOver/DoubleVent, qty=1, customShape+wrap
       //   SqIn = 2880, base = 2880*0.55 = 1584.00
@@ -846,7 +847,7 @@ describe("POST /api/pricing/calculate", () => {
         (3 * 4 * 144 * (PRICING.baseRate + PRICING.booleanAddons.temperedGlass)) * 5
       );
       const item2Total = round2(
-        (2 * 3 * 144 * (PRICING.baseRate + PRICING.color["Eclipse"] + PRICING.series["High Performance"])) * 3
+        (2 * 3 * 144 * (PRICING.baseRate + PRICING.color["Eclipse"] + PRICING.series["High Performance"] + PRICING.function["Picture"])) * 3
       );
       const item3AddonRate =
         PRICING.color["Dark Tan"] +
