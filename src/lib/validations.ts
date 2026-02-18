@@ -9,9 +9,9 @@ export const lineItemSchema = z.object({
   width: z.coerce.number().min(0).default(0),
   height: z.coerce.number().min(0).default(0),
   color: z.string().default("White"),
-  series: z.string().default("Patriot"),
+  series: z.string().default(""),
   frame: z.string().default("Nail Fin"),
-  function: z.string().default("Slider"),
+  function: z.string().default(""),
   // New product fields
   productCode: z.string().optional(),
   operation: z.string().optional(),

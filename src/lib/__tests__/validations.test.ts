@@ -44,9 +44,9 @@ describe("lineItemSchema", () => {
     expect(result.width).toBe(0);
     expect(result.height).toBe(0);
     expect(result.color).toBe("White");
-    expect(result.series).toBe("Patriot");
+    expect(result.series).toBe("");
     expect(result.frame).toBe("Nail Fin");
-    expect(result.function).toBe("Slider");
+    expect(result.function).toBe("");
     expect(result.temperedGlass).toBe(false);
     expect(result.obscuredGlass).toBe(false);
     expect(result.customShape).toBe(false);
@@ -309,7 +309,7 @@ describe("salesContractDraftSchema", () => {
     expect(result.lineItems[0].width).toBe(0);
     expect(result.lineItems[0].height).toBe(0);
     expect(result.lineItems[0].color).toBe("White");
-    expect(result.lineItems[0].series).toBe("Patriot");
+    expect(result.lineItems[0].series).toBe("");
   });
 });
 
