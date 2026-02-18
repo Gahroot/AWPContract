@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Trash2, Check, ChevronsUpDown, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   BOOLEAN_ADDON_LABELS,
@@ -156,11 +156,7 @@ export function LineItemsTable() {
               <TableHead className="min-w-[100px]">Operation</TableHead>
               <TableHead className="min-w-[100px]">Grid Type</TableHead>
               <TableHead className="min-w-[100px]">Glass Type</TableHead>
-              {BOOLEAN_FIELDS.map((field) => (
-                <TableHead key={field} className="w-14 text-center text-xs">
-                  {BOOLEAN_ADDON_LABELS[field]}
-                </TableHead>
-              ))}
+              <TableHead className="w-12 text-center text-xs">Options</TableHead>
               <TableHead className="w-24 text-right">Price</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -176,7 +172,7 @@ export function LineItemsTable() {
               />
             ))}
             <TableRow>
-              <TableCell colSpan={BOOLEAN_FIELDS.length + 14}>
+              <TableCell colSpan={15}>
                 <Button
                   type="button"
                   variant="outline"
@@ -424,32 +420,25 @@ function LineItemRow({
         />
       </TableCell>
 
-      {/* Series (with product code badge) */}
+      {/* Series */}
       <TableCell>
-        <div className="space-y-1">
-          <Select
-            value={getValues(`lineItems.${index}.series`) || "__none__"}
-            onValueChange={(v) => handleSeriesChange(v === "__none__" ? "" : v)}
-            disabled={!selectedStyle || availableSeries.length === 0}
-          >
-            <SelectTrigger className="min-w-[120px]">
-              <SelectValue placeholder="Select series" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">-- Select --</SelectItem>
-              {availableSeries.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {resolvedProduct && (
-            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono">
-              {resolvedProduct.shortCode || resolvedProduct.code}
-            </span>
-          )}
-        </div>
+        <Select
+          value={getValues(`lineItems.${index}.series`) || "__none__"}
+          onValueChange={(v) => handleSeriesChange(v === "__none__" ? "" : v)}
+          disabled={!selectedStyle || availableSeries.length === 0}
+        >
+          <SelectTrigger className="min-w-[120px]">
+            <SelectValue placeholder="Select series" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">-- Select --</SelectItem>
+            {availableSeries.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </TableCell>
 
       {/* Qty */}
@@ -545,8 +534,9 @@ function LineItemRow({
               <SelectItem value="__na__">N/A</SelectItem>
             ) : (
               validOperations.map((op) => (
-                <SelectItem key={op} value={op}>
-                  {op} - {OPERATIONS[op]?.description}
+                <SelectItem key={op} value={op} textValue={op}>
+                  <span className="font-medium">{op}</span>
+                  <span className="text-muted-foreground text-xs ml-1">- {OPERATIONS[op]?.description}</span>
                 </SelectItem>
               ))
             )}
@@ -606,19 +596,10 @@ function LineItemRow({
         </Select>
       </TableCell>
 
-      {/* Boolean Addons */}
-      {BOOLEAN_FIELDS.map((boolField) => (
-        <TableCell key={boolField} className="text-center">
-          <Checkbox
-            checked={!!getValues(`lineItems.${index}.${boolField}`)}
-            onCheckedChange={(checked) =>
-              setValue(`lineItems.${index}.${boolField}`, !!checked, {
-                shouldDirty: true,
-              })
-            }
-          />
-        </TableCell>
-      ))}
+      {/* Boolean Addons (popover) */}
+      <TableCell className="text-center">
+        <BooleanOptionsPopover index={index} />
+      </TableCell>
 
       {/* Price */}
       <TableCell className="text-right font-medium">
@@ -700,6 +681,49 @@ function StyleCombobox({
             ))}
           </CommandList>
         </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ─── Boolean Options Popover ─────────────────────────────────────────────────
+
+function BooleanOptionsPopover({ index }: { index: number }) {
+  const { setValue, getValues } = useFormContext();
+
+  const activeCount = BOOLEAN_FIELDS.filter(
+    (f) => !!getValues(`lineItems.${index}.${f}`),
+  ).length;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 relative">
+          <MoreHorizontal className="h-4 w-4" />
+          {activeCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-44 p-3" align="end">
+        <p className="text-xs font-medium text-muted-foreground mb-2">Add-ons</p>
+        <div className="space-y-2">
+          {BOOLEAN_FIELDS.map((boolField) => (
+            <label key={boolField} className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={!!getValues(`lineItems.${index}.${boolField}`)}
+                onCheckedChange={(checked) =>
+                  setValue(`lineItems.${index}.${boolField}`, !!checked, {
+                    shouldDirty: true,
+                  })
+                }
+              />
+              {BOOLEAN_ADDON_LABELS[boolField]}
+            </label>
+          ))}
+        </div>
       </PopoverContent>
     </Popover>
   );
