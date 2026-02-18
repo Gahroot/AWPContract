@@ -154,6 +154,7 @@ model Contract {
   customerSignatureDate   DateTime?
   authorizedSignature     String?  @db.Text
   authorizedSignatureDate DateTime?
+  customerAcceptedTerms   Boolean  @default(false)
 
   // HubSpot
   hubspotContactId String?

@@ -11,6 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { SignaturePad } from "@/components/shared/signature-pad";
+import { TermsModal } from "@/components/shared/terms-modal";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/pricing";
 import { FORM_OPTIONS } from "@/lib/constants";
 import { Toaster } from "@/components/ui/sonner";
@@ -31,6 +34,7 @@ export default function ContractSignPage() {
   const [error, setError] = useState<string | null>(null);
   const [signature, setSignature] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -51,6 +55,11 @@ export default function ContractSignPage() {
       return;
     }
 
+    if (!acceptedTerms) {
+      toast.error("Please accept the Terms & Conditions");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch(`/api/contracts/public/${token}/sign`, {
@@ -59,6 +68,7 @@ export default function ContractSignPage() {
         body: JSON.stringify({
           customerSignature: signature,
           paymentMethod,
+          customerAcceptedTerms: true,
         }),
       });
 
@@ -210,12 +220,34 @@ export default function ContractSignPage() {
         </CardContent>
       </Card>
 
+      {/* Terms & Conditions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Terms & Conditions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="acceptedTerms"
+              checked={acceptedTerms}
+              onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label htmlFor="acceptedTerms" className="cursor-pointer">
+                I have read and agree to the Terms & Conditions
+              </Label>
+              <TermsModal />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Submit */}
       <div className="flex justify-center pb-8">
         <Button
           size="lg"
           onClick={handleSign}
-          disabled={submitting || !signature}
+          disabled={submitting || !signature || !acceptedTerms}
           className="w-full max-w-sm bg-awp-blue hover:bg-awp-blue/90"
         >
           {submitting ? (

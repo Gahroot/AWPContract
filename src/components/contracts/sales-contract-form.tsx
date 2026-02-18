@@ -18,6 +18,7 @@ import { Save, Send, UserCheck, Loader2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SignaturePad } from "@/components/shared/signature-pad";
 import { AutoSaveIndicator } from "@/components/shared/auto-save-indicator";
+import { TermsModal } from "@/components/shared/terms-modal";
 import { LineItemsTable } from "./line-items-table";
 import { PricingSummary } from "./pricing-summary";
 import { useAutoSave } from "@/lib/hooks/use-auto-save";
@@ -117,6 +118,7 @@ export function SalesContractForm({
           paymentNotes: initialData.paymentNotes || "",
           contractNotes: initialData.contractNotes || "",
           customerNotes: initialData.customerNotes || "",
+          customerAcceptedTerms: initialData.customerAcceptedTerms || false,
           brickApplicationQty: initialData.brickApplicationQty || 0,
           stuccoApplicationQty: initialData.stuccoApplicationQty || 0,
           sidingApplicationQty: initialData.sidingApplicationQty || 0,
@@ -807,6 +809,32 @@ export function SalesContractForm({
                       })
                     }
                   />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Terms & Conditions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Terms & Conditions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="customerAcceptedTerms"
+                    checked={watch("customerAcceptedTerms") || false}
+                    onCheckedChange={(checked) =>
+                      setValue("customerAcceptedTerms", checked as boolean, {
+                        shouldDirty: true,
+                      })
+                    }
+                  />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="customerAcceptedTerms" className="cursor-pointer">
+                      I have read and agree to the Terms & Conditions
+                    </Label>
+                    <TermsModal />
+                  </div>
                 </div>
               </CardContent>
             </Card>

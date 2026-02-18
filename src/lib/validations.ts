@@ -76,6 +76,7 @@ export const salesContractDraftSchema = z.object({
   customerSignatureDate: z.string().optional(),
   authorizedSignature: z.string().optional(),
   authorizedSignatureDate: z.string().optional(),
+  customerAcceptedTerms: z.boolean().default(false),
   status: z.string().optional(),
 });
 
@@ -87,6 +88,7 @@ export const salesContractSubmitSchema = salesContractDraftSchema.extend({
   customerSignature: z.string().min(1, "Customer signature is required"),
   customerSignatureDate: z.string().min(1, "Customer signature date is required"),
   contractorSignature: z.string().min(1, "Contractor signature is required"),
+  customerAcceptedTerms: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
   lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
 });
 
