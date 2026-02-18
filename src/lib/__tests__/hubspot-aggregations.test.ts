@@ -211,7 +211,7 @@ describe("buildDealProperties", () => {
     expect(props.dealname).toContain("John Doe");
     expect(props.amount).toBe("4500");
     expect(props.dealstage).toBe("closedwon");
-    expect(props.pipeline).toBe("default");
+    expect(props.pipeline).toBe("Active");
 
     // Contact info
     expect(props.first_name).toBe("John");
@@ -234,7 +234,7 @@ describe("buildDealProperties", () => {
 
     // Home
     expect(props.year_home_was_built).toBe("1995");
-    expect(props.awp_install_).toBe("Yes");
+    expect(props.awp_install_).toBe("true");
 
     // Contract
     expect(props.temporary_contract_amount).toBe("5000");

@@ -1562,7 +1562,7 @@ export const PRICING = {
 // ─── Form Options ───────────────────────────────────────────────────────────
 
 export const FORM_OPTIONS = {
-  type: ["Window", "Door"],
+  type: ["Window", "Door", "IG", "Pet Door", "Storm"],
 
   color: ["White", "Light Tan", "Dark Tan", "Eclipse", "Black Out White", "Bronze", "Black"],
 

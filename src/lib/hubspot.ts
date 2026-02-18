@@ -189,6 +189,9 @@ export function computeLineItemAggregations(items: LineItemData[]) {
   const agg = {
     numberOfWindows: 0,
     numberOfDoors: 0,
+    numberOfIGs: 0,
+    numberOfPetDoors: 0,
+    numberOfStorms: 0,
     costOfWindows: 0,
     costOfDoors: 0,
     temperedGlassQty: 0,
@@ -222,6 +225,12 @@ export function computeLineItemAggregations(items: LineItemData[]) {
     } else if (item.type === "Door") {
       agg.numberOfDoors += item.qty;
       agg.costOfDoors += item.price;
+    } else if (item.type === "IG") {
+      agg.numberOfIGs += item.qty;
+    } else if (item.type === "Pet Door") {
+      agg.numberOfPetDoors += item.qty;
+    } else if (item.type === "Storm") {
+      agg.numberOfStorms += item.qty;
     }
 
     // boolean addons
@@ -286,7 +295,7 @@ export function buildDealProperties(contract: ContractData): Record<string, stri
     dealname: `Contract - ${contract.customerName || "Unknown"} (${contract.contractNumber})`,
     amount: String(contract.contractTotal),
     dealstage: "closedwon",
-    pipeline: "default",
+    pipeline: "Active",
     // Contact info
     first_name: firstName,
     last_name: lastName,
@@ -305,7 +314,7 @@ export function buildDealProperties(contract: ContractData): Record<string, stri
     preferred_communication_method: contract.preferredCommunication || "",
     // Home
     year_home_was_built: contract.yearBuilt || "",
-    awp_install_: contract.awpInstall ? "Yes" : "No",
+    awp_install_: contract.awpInstall ? "true" : "false",
     // Contract
     temporary_contract_amount: String(contract.total),
     original_contract_signed_date: formatDate(contract.customerSignatureDate),
@@ -339,6 +348,9 @@ export function buildDealProperties(contract: ContractData): Record<string, stri
     // Counts
     number_of_windows: String(agg.numberOfWindows),
     number_of_doors: String(agg.numberOfDoors),
+    of_igs_ig_only_no_frame: String(agg.numberOfIGs),
+    pet_door_qty: String(agg.numberOfPetDoors),
+    storms_qty: String(agg.numberOfStorms),
     cost_of_windows: String(agg.costOfWindows),
     cost_of_doors: String(agg.costOfDoors),
     // Addon quantities
