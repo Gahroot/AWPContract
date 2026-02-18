@@ -16,6 +16,7 @@ import {
   FileSignature,
   FileDiff,
   Download,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +38,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ContractStatusBadge } from "@/components/contracts/contract-status-badge";
+import { HubSpotSyncBadge } from "@/components/contracts/hubspot-sync-badge";
 import { formatCurrency } from "@/lib/pricing";
+import { toast } from "sonner";
 import { CONTRACT_STATUSES } from "@/lib/constants";
 import { format } from "date-fns";
 
@@ -49,6 +52,9 @@ interface ContractListItem {
   contractTotal: number;
   status: string;
   createdAt: string;
+  hubspotSyncStatus: string | null;
+  hubspotLastSynced: string | null;
+  hubspotSyncError: string | null;
 }
 
 interface DashboardData {
@@ -76,6 +82,7 @@ function DashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [syncingContractId, setSyncingContractId] = useState<string | null>(null);
 
   const statusFilter = searchParams.get("status") || "all";
   const page = parseInt(searchParams.get("page") || "1");
@@ -110,6 +117,27 @@ function DashboardContent() {
       else params.delete(k);
     });
     router.push(`/?${params}`);
+  }
+
+  async function handleSyncToHubSpot(contractId: string, contractNumber: string) {
+    setSyncingContractId(contractId);
+    try {
+      const res = await fetch("/api/hubspot/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contractId })
+      });
+
+      if (res.ok) {
+        toast.success(`Contract ${contractNumber.slice(0, 8)}... synced to HubSpot`);
+        fetchData();
+      } else {
+        const { error } = await res.json();
+        toast.error(error || "Sync failed");
+      }
+    } finally {
+      setSyncingContractId(null);
+    }
   }
 
   const totalPages = data ? Math.ceil(data.total / limit) : 0;
@@ -240,6 +268,7 @@ function DashboardContent() {
                 <TableHead className="hidden md:table-cell">Address</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">HubSpot</TableHead>
                 <TableHead className="hidden sm:table-cell">Date</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
@@ -248,7 +277,7 @@ function DashboardContent() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: 8 }).map((_, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-5 w-full" />
                       </TableCell>
@@ -257,7 +286,7 @@ function DashboardContent() {
                 ))
               ) : data?.contracts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No contracts found
                   </TableCell>
                 </TableRow>
@@ -281,6 +310,13 @@ function DashboardContent() {
                     </TableCell>
                     <TableCell>
                       <ContractStatusBadge status={c.status as keyof typeof CONTRACT_STATUSES} />
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <HubSpotSyncBadge
+                        status={c.hubspotSyncStatus}
+                        lastSynced={c.hubspotLastSynced}
+                        error={c.hubspotSyncError}
+                      />
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground">
                       {format(new Date(c.createdAt), "MMM d, yyyy")}
@@ -310,6 +346,13 @@ function DashboardContent() {
                               <FileDiff className="h-4 w-4 mr-2" />
                               New Change Order
                             </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSyncToHubSpot(c.id, c.contractNumber)}
+                            disabled={syncingContractId === c.id}
+                          >
+                            <RefreshCw className={`h-4 w-4 mr-2 ${syncingContractId === c.id ? "animate-spin" : ""}`} />
+                            Sync to HubSpot
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={async () => {

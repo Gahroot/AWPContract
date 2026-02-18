@@ -160,6 +160,11 @@ model Contract {
   hubspotContactId String?
   hubspotDealId    String?
 
+  // HubSpot Sync Tracking
+  hubspotSyncStatus  String?
+  hubspotLastSynced  DateTime?
+  hubspotSyncError   String? @db.Text
+
   // PDF
   pdfUrl           String?
 

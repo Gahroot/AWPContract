@@ -36,21 +36,54 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Set syncing status
+  await db.contract.update({
+    where: { id: contractId },
+    data: { hubspotSyncStatus: "syncing" }
+  });
+
   try {
     const { syncContractToHubSpot } = await import("@/lib/hubspot");
     const result = await syncContractToHubSpot(contract);
 
     if (!result) {
+      await db.contract.update({
+        where: { id: contractId },
+        data: {
+          hubspotSyncStatus: "failed",
+          hubspotSyncError: "HubSpot sync returned no result"
+        }
+      });
       return NextResponse.json(
         { error: "HubSpot sync returned no result" },
         { status: 500 }
       );
     }
 
+    // On success: set status, timestamp, clear error
+    await db.contract.update({
+      where: { id: contractId },
+      data: {
+        hubspotSyncStatus: "synced",
+        hubspotLastSynced: new Date(),
+        hubspotSyncError: null
+      }
+    });
+
     return NextResponse.json({ success: true, ...result });
   } catch (e: unknown) {
     console.error("HubSpot sync error:", e);
     const message = e instanceof Error ? e.message : "HubSpot sync failed";
+
+    // On failure: set failed status, save error
+    await db.contract.update({
+      where: { id: contractId },
+      data: {
+        hubspotSyncStatus: "failed",
+        hubspotSyncError: message
+      }
+    });
+
     return NextResponse.json(
       { error: message },
       { status: 500 }
