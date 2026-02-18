@@ -52,6 +52,12 @@ export async function POST(
 
   const body = await req.json();
 
+  const parseDate = (v: string | undefined | null) => {
+    if (!v) return null;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   const addendum = await db.addendum.create({
     data: {
       contractId: id,
@@ -79,13 +85,9 @@ export async function POST(
       referralPhone: body.referralPhone || null,
       notes: body.notes || null,
       customerSignature: body.customerSignature || null,
-      customerSignatureDate: body.customerSignatureDate
-        ? new Date(body.customerSignatureDate)
-        : null,
+      customerSignatureDate: parseDate(body.customerSignatureDate),
       contractorSignature: body.contractorSignature || null,
-      contractorSignatureDate: body.contractorSignatureDate
-        ? new Date(body.contractorSignatureDate)
-        : null,
+      contractorSignatureDate: parseDate(body.contractorSignatureDate),
     },
   });
 
@@ -95,18 +97,15 @@ export async function POST(
     addendum.customerSignature &&
     addendum.contractorSignature
   ) {
-    // Fire and forget sync
-    (async () => {
-      try {
-        const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
-        if (setting?.value) {
-          const { syncAddendum, toAddendumData } = await import("@/lib/hubspot");
-          await syncAddendum(toAddendumData(addendum), contract, setting.value);
-        }
-      } catch (err) {
-        console.error("HubSpot addendum sync error:", err);
+    try {
+      const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
+      if (setting?.value) {
+        const { syncAddendum, toAddendumData } = await import("@/lib/hubspot");
+        await syncAddendum(toAddendumData(addendum), contract, setting.value);
       }
-    })();
+    } catch (err) {
+      console.error("HubSpot addendum sync error:", err);
+    }
   }
 
   return NextResponse.json(addendum, { status: 201 });

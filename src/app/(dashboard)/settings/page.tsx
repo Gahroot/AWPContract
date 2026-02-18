@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, DollarSign } from "lucide-react";
 import Link from "next/link";
@@ -15,6 +16,7 @@ interface SettingsData {
   company_phone: string;
   company_address: string;
   hubspot_api_key: string;
+  hubspot_sync_enabled: string;
 }
 
 export default function SettingsPage() {
@@ -23,6 +25,7 @@ export default function SettingsPage() {
     company_phone: "",
     company_address: "",
     hubspot_api_key: "",
+    hubspot_sync_enabled: "",
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +161,21 @@ export default function SettingsPage() {
             )}
             Test Connection
           </Button>
+          <Separator className="my-4" />
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label>Enable HubSpot Sync</Label>
+              <p className="text-sm text-muted-foreground">
+                When disabled, sync operations log to console but do not send data to HubSpot
+              </p>
+            </div>
+            <Switch
+              checked={settings.hubspot_sync_enabled === "true"}
+              onCheckedChange={(checked) =>
+                setSettings((s) => ({ ...s, hubspot_sync_enabled: checked ? "true" : "false" }))
+              }
+            />
+          </div>
         </CardContent>
       </Card>
 

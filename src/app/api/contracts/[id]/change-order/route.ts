@@ -51,6 +51,12 @@ export async function POST(
 
   const body = await req.json();
 
+  const parseDate = (v: string | undefined | null) => {
+    if (!v) return null;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   // Calculate new price based on change type
   const originalPrice = contract.contractTotal;
   let newPrice = originalPrice;
@@ -66,7 +72,7 @@ export async function POST(
 
   // Count existing change orders for sequential numbering
   const count = await db.changeOrder.count({ where: { contractId: id } });
-  const changeOrderNumber = `CO-${contract.contractNumber.slice(0, 8)}-${count + 1}`;
+  const changeOrderNumber = `CO-${contract.contractNumber?.slice(0, 8) ?? "UNKNOWN"}-${count + 1}`;
 
   const changeOrder = await db.changeOrder.create({
     data: {
@@ -79,13 +85,9 @@ export async function POST(
       newPrice,
       newBalanceDue: Math.max(0, newBalanceDue),
       customerSignature: body.customerSignature || null,
-      customerSignatureDate: body.customerSignatureDate
-        ? new Date(body.customerSignatureDate)
-        : null,
+      customerSignatureDate: parseDate(body.customerSignatureDate),
       awpSignature: body.awpSignature || null,
-      awpSignatureDate: body.awpSignatureDate
-        ? new Date(body.awpSignatureDate)
-        : null,
+      awpSignatureDate: parseDate(body.awpSignatureDate),
     },
   });
 
@@ -117,18 +119,15 @@ export async function POST(
     changeOrder.customerSignature &&
     changeOrder.awpSignature
   ) {
-    // Fire and forget sync
-    (async () => {
-      try {
-        const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
-        if (setting?.value) {
-          const { syncChangeOrder, toChangeOrderData } = await import("@/lib/hubspot");
-          await syncChangeOrder(toChangeOrderData(changeOrder), contract, setting.value);
-        }
-      } catch (err) {
-        console.error("HubSpot change order sync error:", err);
+    try {
+      const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
+      if (setting?.value) {
+        const { syncChangeOrder, toChangeOrderData } = await import("@/lib/hubspot");
+        await syncChangeOrder(toChangeOrderData(changeOrder), contract, setting.value);
       }
-    })();
+    } catch (err) {
+      console.error("HubSpot change order sync error:", err);
+    }
   }
 
   return NextResponse.json(changeOrder, { status: 201 });

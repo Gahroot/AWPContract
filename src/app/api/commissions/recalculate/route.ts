@@ -18,16 +18,15 @@ export async function POST() {
   let success = 0;
   let failed = 0;
 
-  for (const contract of contracts) {
-    try {
-      await upsertCommissionForContract(
-        contract.id,
-        "Bulk recalculation after config change"
-      );
-      success++;
-    } catch (e) {
-      console.error(`Commission recalc failed for ${contract.id}:`, e);
-      failed++;
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < contracts.length; i += BATCH_SIZE) {
+    const batch = contracts.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(c => upsertCommissionForContract(c.id, "Bulk recalculation after config change"))
+    );
+    for (const r of results) {
+      if (r.status === "fulfilled") success++;
+      else { failed++; console.error("Commission recalc failed:", r.reason); }
     }
   }
 

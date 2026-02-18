@@ -8,7 +8,7 @@ const PUBLIC_SETTING_KEYS = [
   "company_address",
 ];
 
-const ADMIN_SETTING_KEYS = [...PUBLIC_SETTING_KEYS, "hubspot_api_key"];
+const ADMIN_SETTING_KEYS = [...PUBLIC_SETTING_KEYS, "hubspot_api_key", "hubspot_sync_enabled"];
 
 // GET /api/settings
 export async function GET() {

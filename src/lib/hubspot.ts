@@ -39,6 +39,7 @@ interface ContractData {
   billingAddress: string | null;
   customerCity: string | null;
   customerZip: string | null;
+  customerState: string | null;
 
   // Job Details
   salesman: string | null;
@@ -47,6 +48,10 @@ interface ContractData {
   yearBuilt: string | null;
   houseType: string | null;
   measurementNotes: string | null;
+  territory: string | null;
+  setter: string | null;
+  preferredCommunication: string | null;
+  awpInstall: boolean;
 
   // Pricing
   total: number;
@@ -57,13 +62,40 @@ interface ContractData {
   financeBalance: number;
   wfebAccount: string | null;
 
+  // Payment
+  paymentMethod: string | null;
+  downPaymentMethod: string | null;
+  financingOption: string | null;
+  financingLoanId: string | null;
+  financingPlan: string | null;
+
   // Marketing
   planNumber: string | null;
   authNumber: string | null;
   marketingSource: unknown;
 
-  // Payment
-  paymentMethod: string | null;
+  // Notes
+  paymentNotes: string | null;
+  contractNotes: string | null;
+  customerNotes: string | null;
+
+  // Window details
+  coatedColor: string | null;
+  interiorShutters: string | null;
+  windowsBeingRemoved: string | null;
+
+  // Application surfaces
+  brickApplicationQty: number;
+  stuccoApplicationQty: number;
+  sidingApplicationQty: number;
+  foundationApplicationQty: number;
+  woodApplicationQty: number;
+
+  // Signatures
+  customerSignatureDate: Date | null;
+
+  // Commission
+  commissionAmount: number | null;
 
   // HubSpot
   hubspotContactId?: string | null;
@@ -126,6 +158,8 @@ interface ChangeOrderData {
   createdAt: Date;
 }
 
+// ─── Helpers ────────────────────────────────────────────────
+
 function parseCustomerName(fullName: string | null): {
   firstName: string;
   lastName: string;
@@ -143,11 +177,196 @@ function formatDate(date: Date | null): string {
   return date.toISOString().split("T")[0];
 }
 
-function formatJson(value: unknown): string {
-  if (value === null) return "";
-  if (typeof value === "string") return value;
-  return JSON.stringify(value);
+async function isHubSpotSyncEnabled(): Promise<boolean> {
+  const { db } = await import("@/lib/db");
+  const setting = await db.setting.findUnique({ where: { key: "hubspot_sync_enabled" } });
+  return setting?.value === "true";
 }
+
+// ─── Line Item Aggregations ─────────────────────────────────
+
+export function computeLineItemAggregations(items: LineItemData[]) {
+  const agg = {
+    numberOfWindows: 0,
+    numberOfDoors: 0,
+    costOfWindows: 0,
+    costOfDoors: 0,
+    temperedGlassQty: 0,
+    obscuredGlassQty: 0,
+    coatedQty: 0,
+    customShapesQty: 0,
+    wrapQty: 0,
+    patriotQty: 0,
+    highPerformanceQty: 0,
+    autographQty: 0,
+    signatureQty: 0,
+    imperialQty: 0,
+    nailFinQty: 0,
+    flushFinQty: 0,
+    frameOverQty: 0,
+    sliderQty: 0,
+    pictureQty: 0,
+    doubleVentQty: 0,
+    eyebrowQty: 0,
+    windowType: "No",
+    windowColor: "",
+  };
+
+  const colorCounts: Record<string, number> = {};
+
+  for (const item of items) {
+    // type
+    if (item.type === "Window") {
+      agg.numberOfWindows += item.qty;
+      agg.costOfWindows += item.price;
+    } else if (item.type === "Door") {
+      agg.numberOfDoors += item.qty;
+      agg.costOfDoors += item.price;
+    }
+
+    // boolean addons
+    if (item.temperedGlass) agg.temperedGlassQty += item.qty;
+    if (item.obscuredGlass) agg.obscuredGlassQty += item.qty;
+    if (item.coated) {
+      agg.coatedQty += item.qty;
+      agg.windowType = "Yes";
+    }
+    if (item.customShape) agg.customShapesQty += item.qty;
+    if (item.wrap) agg.wrapQty += item.qty;
+
+    // series
+    if (item.series === "Patriot") agg.patriotQty += item.qty;
+    else if (item.series === "High Performance") agg.highPerformanceQty += item.qty;
+    else if (item.series === "Autograph") agg.autographQty += item.qty;
+    else if (item.series === "Signature") agg.signatureQty += item.qty;
+    else if (item.series === "Imperial") agg.imperialQty += item.qty;
+
+    // frame
+    if (item.frame === "Nail Fin") agg.nailFinQty += item.qty;
+    else if (item.frame === "Flush Fin") agg.flushFinQty += item.qty;
+    else if (item.frame === "Frame Over") agg.frameOverQty += item.qty;
+
+    // function
+    if (item.function.includes("Slider")) agg.sliderQty += item.qty;
+    if (item.function === "Picture") agg.pictureQty += item.qty;
+    if (item.function === "Double Vent") agg.doubleVentQty += item.qty;
+    if (item.function === "Eyebrow" || item.function.includes("Eyebrow")) agg.eyebrowQty += item.qty;
+
+    // color tracking
+    colorCounts[item.color] = (colorCounts[item.color] || 0) + item.qty;
+  }
+
+  // Most frequent color
+  let maxCount = 0;
+  for (const [color, count] of Object.entries(colorCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      agg.windowColor = color;
+    }
+  }
+
+  return agg;
+}
+
+// ─── Deal Property Builder ──────────────────────────────────
+
+const paymentMethodMap: Record<string, string> = {
+  cash: "Cash",
+  check: "Check",
+  finance: "Financing",
+  credit_card: "Credit Card",
+  ach: "ACH",
+};
+
+export function buildDealProperties(contract: ContractData): Record<string, string> {
+  const { firstName, lastName } = parseCustomerName(contract.customerName);
+  const agg = computeLineItemAggregations(contract.lineItems);
+
+  return {
+    dealname: `Contract - ${contract.customerName || "Unknown"} (${contract.contractNumber})`,
+    amount: String(contract.contractTotal),
+    dealstage: "closedwon",
+    pipeline: "default",
+    // Contact info
+    first_name: firstName,
+    last_name: lastName,
+    email: contract.customerEmail || "",
+    main_phone_number: contract.customerPhone || "",
+    secondary_phone_number: contract.customerPhoneAlt || "",
+    // Property
+    property_street: contract.jobAddress || "",
+    property_city: contract.customerCity || "",
+    property_state: contract.customerState || "",
+    property_postal_code: contract.customerZip || "",
+    // Sales
+    sales_rep: contract.salesman || "",
+    territory: contract.territory || "",
+    setter: contract.setter || "",
+    preferred_communication_method: contract.preferredCommunication || "",
+    // Home
+    year_home_was_built: contract.yearBuilt || "",
+    awp_install_: contract.awpInstall ? "Yes" : "No",
+    // Contract
+    temporary_contract_amount: String(contract.total),
+    original_contract_signed_date: formatDate(contract.customerSignatureDate),
+    // Payment
+    payment_method: paymentMethodMap[contract.paymentMethod || ""] || contract.paymentMethod || "",
+    commission: contract.commissionAmount != null ? String(contract.commissionAmount) : "",
+    "down_payment___method": contract.downPaymentMethod || "",
+    down_payment_amount: String(contract.downPayment),
+    // Financing
+    financing_option: contract.financingOption || "",
+    financed_amount: String(contract.financeBalance),
+    financing_account_number: contract.wfebAccount || "",
+    financing_loan_id: contract.financingLoanId || "",
+    financing_plan: contract.financingPlan || "",
+    // Notes
+    payment_notes: contract.paymentNotes || "",
+    contract_notes: contract.contractNotes || "",
+    customer_notes_preferences: contract.customerNotes || "",
+    // Window details
+    window_type: agg.windowType,
+    window_color: agg.windowColor,
+    coated_color: contract.coatedColor || "",
+    interior_shutters: contract.interiorShutters || "",
+    windows_being_removed: contract.windowsBeingRemoved || "",
+    // Application surfaces
+    brick_applications: String(contract.brickApplicationQty),
+    "stucco_application__": String(contract.stuccoApplicationQty),
+    "siding_application__": String(contract.sidingApplicationQty),
+    "foundation_application__": String(contract.foundationApplicationQty),
+    "wood_application__": String(contract.woodApplicationQty),
+    // Counts
+    number_of_windows: String(agg.numberOfWindows),
+    number_of_doors: String(agg.numberOfDoors),
+    cost_of_windows: String(agg.costOfWindows),
+    cost_of_doors: String(agg.costOfDoors),
+    // Addon quantities
+    tempered_glass_qty: String(agg.temperedGlassQty),
+    obscured_glass_qty: String(agg.obscuredGlassQty),
+    coated_qty: String(agg.coatedQty),
+    custom_shapes_qty: String(agg.customShapesQty),
+    "wraps__": String(agg.wrapQty),
+    // Series quantities
+    awp_patriot_qty: String(agg.patriotQty),
+    high_performance_qty: String(agg.highPerformanceQty),
+    awp_high_performance_qty: String(agg.highPerformanceQty),
+    ww_autograph_qty: String(agg.autographQty),
+    ww_signature_qty: String(agg.signatureQty),
+    awp_imperial_casement_qty: String(agg.imperialQty),
+    // Frame quantities
+    nail_fin_qty: String(agg.nailFinQty),
+    flush_fin_qty: String(agg.flushFinQty),
+    frame_over_qty: String(agg.frameOverQty),
+    // Function quantities
+    slider_qty: String(agg.sliderQty),
+    picture_qty: String(agg.pictureQty),
+    double_vent_qty: String(agg.doubleVentQty),
+    eyebrow_qty: String(agg.eyebrowQty),
+  };
+}
+
+// ─── HubSpot API Operations ────────────────────────────────
 
 export async function testConnection(accessToken: string): Promise<boolean> {
   const client = new Client({ accessToken });
@@ -227,55 +446,13 @@ export async function upsertContact(
   return createResponse.id;
 }
 
-function getDealStageFromStatus(status: ContractStatus): string {
-  switch (status) {
-    case "DRAFT":
-      return "appointmentscheduled";
-    case "PENDING_SIGNATURE":
-      return "qualifiedtobuy";
-    case "SIGNED":
-      return "contractsent";
-    case "COMPLETED":
-      return "closedwon";
-    default:
-      return "appointmentscheduled";
-  }
-}
-
 export async function createDeal(
   client: Client,
   contract: ContractData,
   contactId: string
 ): Promise<string> {
   const dealResponse = await client.crm.deals.basicApi.create({
-    properties: {
-      dealname: `Contract - ${contract.customerName || "Unknown"} (${contract.contractNumber})`,
-      amount: String(contract.contractTotal),
-      dealstage: getDealStageFromStatus(contract.status),
-      closedate: formatDate(new Date()),
-      pipeline: "default",
-      // Contract details
-      awp_contract_number: contract.contractNumber,
-      awp_salesman: contract.salesman || "",
-      awp_measurement_date: formatDate(contract.measurementDate),
-      awp_lead_test: contract.leadTest || "",
-      awp_year_built: contract.yearBuilt || "",
-      awp_house_type: contract.houseType || "",
-      awp_measurement_notes: contract.measurementNotes || "",
-      // Pricing
-      awp_total: String(contract.total),
-      awp_discount: String(contract.discount),
-      awp_down_payment: String(contract.downPayment),
-      awp_balance_due: String(contract.balanceDue),
-      awp_finance_balance: String(contract.financeBalance),
-      awp_wfeb_account: contract.wfebAccount || "",
-      // Marketing
-      awp_plan_number: contract.planNumber || "",
-      awp_auth_number: contract.authNumber || "",
-      awp_marketing_source: formatJson(contract.marketingSource),
-      // Payment
-      awp_payment_method: contract.paymentMethod || "",
-    },
+    properties: buildDealProperties(contract),
     associations: [
       {
         to: { id: contactId },
@@ -299,25 +476,27 @@ export async function addLineItems(
   dealId: string
 ): Promise<void> {
   for (const item of contract.lineItems) {
+    const details = [
+      `${item.width}"W x ${item.height}"H`,
+      item.color,
+      item.series,
+      item.frame,
+      item.function,
+      item.temperedGlass ? "Tempered" : "",
+      item.obscuredGlass ? "Obscured" : "",
+      item.coated ? "Coated" : "",
+      item.wrap ? "Wrap" : "",
+      item.customShape ? "Custom Shape" : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
     await client.crm.lineItems.basicApi.create({
       properties: {
         name: `${item.location || "Item"} - ${item.type}`,
         quantity: String(item.qty),
         price: String(item.price),
-        // Custom properties
-        awp_qty: String(item.qty),
-        awp_width: String(item.width),
-        awp_height: String(item.height),
-        awp_color: item.color,
-        awp_series: item.series,
-        awp_frame: item.frame,
-        awp_function: item.function,
-        awp_tempered_glass: item.temperedGlass ? "true" : "false",
-        awp_obscured_glass: item.obscuredGlass ? "true" : "false",
-        awp_custom_shape: item.customShape ? "true" : "false",
-        awp_wrap: item.wrap ? "true" : "false",
-        awp_coated: item.coated ? "true" : "false",
-        awp_shutter_rnr: item.awpShutterRnr ? "true" : "false",
+        description: details,
       },
       associations: [
         {
@@ -364,43 +543,7 @@ export async function attachPdfNote(
   });
 }
 
-export async function updateDealCommission(
-  client: Client,
-  dealId: string,
-  commissionAmount: number,
-  commissionRate: number
-): Promise<void> {
-  await client.crm.deals.basicApi.update(dealId, {
-    properties: {
-      awp_commission_amount: String(commissionAmount),
-      awp_commission_rate: String(commissionRate),
-    },
-  });
-}
-
-export async function updateDealForContract(
-  contract: ContractData,
-  accessToken: string
-): Promise<void> {
-  if (!contract.hubspotDealId) {
-    console.warn("Cannot update deal: no HubSpot deal ID");
-    return;
-  }
-
-  const client = new Client({ accessToken });
-
-  await client.crm.deals.basicApi.update(contract.hubspotDealId, {
-    properties: {
-      amount: String(contract.contractTotal),
-      dealstage: getDealStageFromStatus(contract.status),
-      awp_total: String(contract.total),
-      awp_discount: String(contract.discount),
-      awp_down_payment: String(contract.downPayment),
-      awp_balance_due: String(contract.balanceDue),
-      awp_finance_balance: String(contract.financeBalance),
-    },
-  });
-}
+// ─── Addendum Sync ──────────────────────────────────────────
 
 function formatAddendumNote(addendum: AddendumData): string {
   const sections: string[] = [];
@@ -477,6 +620,12 @@ export async function syncAddendum(
     return null;
   }
 
+  const syncEnabled = await isHubSpotSyncEnabled();
+  if (!syncEnabled) {
+    console.log("[HubSpot DRY RUN] Would sync addendum for deal:", contract.hubspotDealId);
+    return null;
+  }
+
   const client = new Client({ accessToken });
 
   const noteContent = formatAddendumNote(addendum);
@@ -502,6 +651,8 @@ export async function syncAddendum(
 
   return { noteId: noteResponse.id };
 }
+
+// ─── Change Order Sync ──────────────────────────────────────
 
 function formatChangeOrderNote(changeOrder: ChangeOrderData): string {
   const sections: string[] = [];
@@ -545,6 +696,12 @@ export async function syncChangeOrder(
     return null;
   }
 
+  const syncEnabled = await isHubSpotSyncEnabled();
+  if (!syncEnabled) {
+    console.log("[HubSpot DRY RUN] Would sync change order for deal:", contract.hubspotDealId);
+    return null;
+  }
+
   const client = new Client({ accessToken });
 
   // Create note with change order details
@@ -574,10 +731,6 @@ export async function syncChangeOrder(
     await client.crm.deals.basicApi.update(contract.hubspotDealId, {
       properties: {
         amount: String(changeOrder.newPrice),
-        awp_original_price: String(changeOrder.originalPrice),
-        awp_price_change_type: changeOrder.priceChangeType,
-        awp_price_change_amount: String(changeOrder.priceChangeAmount),
-        awp_new_balance_due: String(changeOrder.newBalanceDue),
       },
     });
     dealUpdated = true;
@@ -586,21 +739,7 @@ export async function syncChangeOrder(
   return { noteId: noteResponse.id, dealUpdated };
 }
 
-// High-level helper: sync a contract to HubSpot (fetch API key, sync, save IDs)
-export async function syncContractToHubSpot(
-  contract: Contract & { lineItems: LineItem[] }
-): Promise<{ contactId: string; dealId: string } | null> {
-  const { db } = await import("@/lib/db");
-  const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
-  if (!setting?.value) return null;
-  const contractData = toContractData(contract);
-  const result = await syncContract(contractData, setting.value);
-  await db.contract.update({
-    where: { id: contract.id },
-    data: { hubspotContactId: result.contactId, hubspotDealId: result.dealId },
-  });
-  return result;
-}
+// ─── High-Level Sync ────────────────────────────────────────
 
 export async function syncContract(
   contract: ContractData,
@@ -623,9 +762,45 @@ export async function syncContract(
   return { contactId, dealId };
 }
 
-// Helper to convert database contract to ContractData
-export function toContractData(
+export async function syncContractToHubSpot(
   contract: Contract & { lineItems: LineItem[] }
+): Promise<{ contactId: string; dealId: string } | null> {
+  const { db } = await import("@/lib/db");
+
+  // Check sync guard
+  const syncEnabled = await isHubSpotSyncEnabled();
+
+  const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
+  if (!setting?.value) return null;
+
+  // Fetch commission amount
+  const commission = await db.commissionRecord.findFirst({
+    where: { contractId: contract.id },
+    orderBy: { createdAt: "desc" },
+    select: { amount: true },
+  });
+
+  const contractData = toContractData(contract, commission?.amount ?? null);
+
+  if (!syncEnabled) {
+    const properties = buildDealProperties(contractData);
+    console.log("[HubSpot DRY RUN] Would sync deal with properties:", JSON.stringify(properties, null, 2));
+    return null;
+  }
+
+  const result = await syncContract(contractData, setting.value);
+  await db.contract.update({
+    where: { id: contract.id },
+    data: { hubspotContactId: result.contactId, hubspotDealId: result.dealId },
+  });
+  return result;
+}
+
+// ─── Data Converters ────────────────────────────────────────
+
+export function toContractData(
+  contract: Contract & { lineItems: LineItem[] },
+  commissionAmount?: number | null
 ): ContractData {
   return {
     id: contract.id,
@@ -641,6 +816,7 @@ export function toContractData(
     billingAddress: contract.billingAddress,
     customerCity: contract.customerCity,
     customerZip: contract.customerZip,
+    customerState: contract.customerState,
 
     // Job Details
     salesman: contract.salesman,
@@ -649,6 +825,10 @@ export function toContractData(
     yearBuilt: contract.yearBuilt,
     houseType: contract.houseType,
     measurementNotes: contract.measurementNotes,
+    territory: contract.territory,
+    setter: contract.setter,
+    preferredCommunication: contract.preferredCommunication,
+    awpInstall: contract.awpInstall,
 
     // Pricing
     total: contract.total,
@@ -659,13 +839,40 @@ export function toContractData(
     financeBalance: contract.financeBalance,
     wfebAccount: contract.wfebAccount,
 
+    // Payment
+    paymentMethod: contract.paymentMethod,
+    downPaymentMethod: contract.downPaymentMethod,
+    financingOption: contract.financingOption,
+    financingLoanId: contract.financingLoanId,
+    financingPlan: contract.financingPlan,
+
     // Marketing
     planNumber: contract.planNumber,
     authNumber: contract.authNumber,
     marketingSource: contract.marketingSource,
 
-    // Payment
-    paymentMethod: contract.paymentMethod,
+    // Notes
+    paymentNotes: contract.paymentNotes,
+    contractNotes: contract.contractNotes,
+    customerNotes: contract.customerNotes,
+
+    // Window details
+    coatedColor: contract.coatedColor,
+    interiorShutters: contract.interiorShutters,
+    windowsBeingRemoved: contract.windowsBeingRemoved,
+
+    // Application surfaces
+    brickApplicationQty: contract.brickApplicationQty,
+    stuccoApplicationQty: contract.stuccoApplicationQty,
+    sidingApplicationQty: contract.sidingApplicationQty,
+    foundationApplicationQty: contract.foundationApplicationQty,
+    woodApplicationQty: contract.woodApplicationQty,
+
+    // Signatures
+    customerSignatureDate: contract.customerSignatureDate,
+
+    // Commission
+    commissionAmount: commissionAmount ?? null,
 
     // HubSpot
     hubspotContactId: contract.hubspotContactId ?? undefined,
@@ -696,7 +903,6 @@ export function toContractData(
   };
 }
 
-// Helper to convert database addendum to AddendumData
 export function toAddendumData(addendum: Addendum): AddendumData {
   return {
     id: addendum.id,
@@ -732,7 +938,6 @@ export function toAddendumData(addendum: Addendum): AddendumData {
   };
 }
 
-// Helper to convert database change order to ChangeOrderData
 export function toChangeOrderData(changeOrder: ChangeOrder): ChangeOrderData {
   return {
     id: changeOrder.id,

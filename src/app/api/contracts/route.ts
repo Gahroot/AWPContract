@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const status = searchParams.get("status");
   const search = searchParams.get("search");
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1") || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "10") || 10));
   const skip = (page - 1) * limit;
 
   const where: Prisma.ContractWhereInput = {};
@@ -66,15 +66,11 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-  const totalAll = await db.contract.count({
-    where: session.user.role !== "ADMIN" ? { userId: session.user.id } : {},
-  });
-
   return NextResponse.json({
     contracts,
     total,
     stats: {
-      total: totalAll,
+      total,
       draft,
       pendingSignature,
       completed,
@@ -166,6 +162,26 @@ export async function POST(req: NextRequest) {
         authNumber: contractData.authNumber || null,
         marketingSource: contractData.marketingSource || null,
         paymentMethod: contractData.paymentMethod || null,
+        customerState: contractData.customerState || null,
+        territory: contractData.territory || null,
+        setter: contractData.setter || null,
+        preferredCommunication: contractData.preferredCommunication || null,
+        awpInstall: contractData.awpInstall || false,
+        downPaymentMethod: contractData.downPaymentMethod || null,
+        financingOption: contractData.financingOption || null,
+        financingLoanId: contractData.financingLoanId || null,
+        financingPlan: contractData.financingPlan || null,
+        coatedColor: contractData.coatedColor || null,
+        interiorShutters: contractData.interiorShutters || null,
+        windowsBeingRemoved: contractData.windowsBeingRemoved || null,
+        paymentNotes: contractData.paymentNotes || null,
+        contractNotes: contractData.contractNotes || null,
+        customerNotes: contractData.customerNotes || null,
+        brickApplicationQty: parseInt(contractData.brickApplicationQty) || 0,
+        stuccoApplicationQty: parseInt(contractData.stuccoApplicationQty) || 0,
+        sidingApplicationQty: parseInt(contractData.sidingApplicationQty) || 0,
+        foundationApplicationQty: parseInt(contractData.foundationApplicationQty) || 0,
+        woodApplicationQty: parseInt(contractData.woodApplicationQty) || 0,
         measurementNotes: contractData.measurementNotes || null,
         contractorSignature: contractData.contractorSignature || null,
         contractorSignatureDate: contractData.contractorSignatureDate

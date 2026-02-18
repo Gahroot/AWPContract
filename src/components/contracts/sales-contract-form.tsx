@@ -109,6 +109,26 @@ export function SalesContractForm({
           authNumber: initialData.authNumber || "",
           marketingSource: initialData.marketingSource || [],
           paymentMethod: initialData.paymentMethod || "",
+          customerState: initialData.customerState || "",
+          territory: initialData.territory || "",
+          setter: initialData.setter || "",
+          preferredCommunication: initialData.preferredCommunication || "",
+          awpInstall: initialData.awpInstall || false,
+          downPaymentMethod: initialData.downPaymentMethod || "",
+          financingOption: initialData.financingOption || "",
+          financingLoanId: initialData.financingLoanId || "",
+          financingPlan: initialData.financingPlan || "",
+          coatedColor: initialData.coatedColor || "",
+          interiorShutters: initialData.interiorShutters || "",
+          windowsBeingRemoved: initialData.windowsBeingRemoved || "",
+          paymentNotes: initialData.paymentNotes || "",
+          contractNotes: initialData.contractNotes || "",
+          customerNotes: initialData.customerNotes || "",
+          brickApplicationQty: initialData.brickApplicationQty || 0,
+          stuccoApplicationQty: initialData.stuccoApplicationQty || 0,
+          sidingApplicationQty: initialData.sidingApplicationQty || 0,
+          foundationApplicationQty: initialData.foundationApplicationQty || 0,
+          woodApplicationQty: initialData.woodApplicationQty || 0,
           measurementNotes: initialData.measurementNotes || "",
           contractorSignature: initialData.contractorSignature || "",
           contractorSignatureDate: initialData.contractorSignatureDate
@@ -142,6 +162,12 @@ export function SalesContractForm({
           discount: 0,
           downPayment: 0,
           financeBalance: 0,
+          awpInstall: false,
+          brickApplicationQty: 0,
+          stuccoApplicationQty: 0,
+          sidingApplicationQty: 0,
+          foundationApplicationQty: 0,
+          woodApplicationQty: 0,
           marketingSource: [],
         },
   });
@@ -389,6 +415,19 @@ export function SalesContractForm({
                 <Label htmlFor="customerZip">ZIP</Label>
                 <Input id="customerZip" {...register("customerZip")} />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerState">State</Label>
+                <select
+                  id="customerState"
+                  {...register("customerState")}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Select state</option>
+                  {FORM_OPTIONS.states.map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="billingAddress">
                   Billing Address (if different)
@@ -398,6 +437,22 @@ export function SalesContractForm({
                   {...register("billingAddress")}
                   placeholder="Leave blank if same as job address"
                 />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Preferred Communication</Label>
+                <RadioGroup
+                  value={watch("preferredCommunication") || ""}
+                  onValueChange={(v) => setValue("preferredCommunication", v, { shouldDirty: true })}
+                >
+                  <div className="flex gap-4">
+                    {FORM_OPTIONS.preferredCommunication.map((method) => (
+                      <label key={method} className="flex items-center gap-2 text-sm">
+                        <RadioGroupItem value={method} />
+                        {method}
+                      </label>
+                    ))}
+                  </div>
+                </RadioGroup>
               </div>
             </div>
           </CardContent>
@@ -451,6 +506,100 @@ export function SalesContractForm({
                     {type}
                   </label>
                 ))}
+              </div>
+            </div>
+            <Separator className="my-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="territory">Territory</Label>
+                <select
+                  id="territory"
+                  {...register("territory")}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Select territory</option>
+                  {FORM_OPTIONS.territory.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="setter">Setter</Label>
+                <Input id="setter" {...register("setter")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="awpInstall">AWP Install</Label>
+                <div className="pt-1">
+                  <Switch
+                    id="awpInstall"
+                    checked={watch("awpInstall") || false}
+                    onCheckedChange={(checked) => setValue("awpInstall", checked, { shouldDirty: true })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="windowsBeingRemoved">Windows Being Removed</Label>
+                <select
+                  id="windowsBeingRemoved"
+                  {...register("windowsBeingRemoved")}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Select type</option>
+                  {FORM_OPTIONS.windowsBeingRemoved.map((w) => (
+                    <option key={w} value={w}>{w}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="interiorShutters">Interior Shutters</Label>
+                <select
+                  id="interiorShutters"
+                  {...register("interiorShutters")}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Select option</option>
+                  {FORM_OPTIONS.interiorShutters.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="coatedColor">Coated Color</Label>
+                <select
+                  id="coatedColor"
+                  {...register("coatedColor")}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Select color</option>
+                  {FORM_OPTIONS.coatedColor.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Label className="mb-2 block">Application Surface Quantities</Label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="brickApplicationQty" className="text-xs text-muted-foreground">Brick</Label>
+                  <Input id="brickApplicationQty" type="number" min="0" {...register("brickApplicationQty")} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="stuccoApplicationQty" className="text-xs text-muted-foreground">Stucco</Label>
+                  <Input id="stuccoApplicationQty" type="number" min="0" {...register("stuccoApplicationQty")} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="sidingApplicationQty" className="text-xs text-muted-foreground">Siding</Label>
+                  <Input id="sidingApplicationQty" type="number" min="0" {...register("sidingApplicationQty")} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="foundationApplicationQty" className="text-xs text-muted-foreground">Foundation</Label>
+                  <Input id="foundationApplicationQty" type="number" min="0" {...register("foundationApplicationQty")} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="woodApplicationQty" className="text-xs text-muted-foreground">Wood</Label>
+                  <Input id="woodApplicationQty" type="number" min="0" {...register("woodApplicationQty")} />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -507,17 +656,39 @@ export function SalesContractForm({
           </CardContent>
         </Card>
 
-        {/* Section 6: Measurement Notes */}
+        {/* Section 6: Notes */}
         <Card>
           <CardHeader>
-            <CardTitle>Measurement Notes</CardTitle>
+            <CardTitle>Notes</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Textarea
-              {...register("measurementNotes")}
-              placeholder="Enter measurement notes..."
-              rows={4}
-            />
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="measurementNotes">Measurement Notes</Label>
+              <Textarea
+                id="measurementNotes"
+                {...register("measurementNotes")}
+                placeholder="Enter measurement notes..."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contractNotes">Contract Notes</Label>
+              <Textarea
+                id="contractNotes"
+                {...register("contractNotes")}
+                placeholder="Enter contract notes..."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerNotes">Customer Notes / Preferences</Label>
+              <Textarea
+                id="customerNotes"
+                {...register("customerNotes")}
+                placeholder="Enter customer notes and preferences..."
+                rows={3}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -594,6 +765,79 @@ export function SalesContractForm({
                     ))}
                   </div>
                 </RadioGroup>
+              </CardContent>
+            </Card>
+
+            {/* Down Payment Method */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Down Payment Method</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RadioGroup
+                  value={watch("downPaymentMethod") || ""}
+                  onValueChange={(v) => setValue("downPaymentMethod", v, { shouldDirty: true })}
+                >
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    {FORM_OPTIONS.downPaymentMethod.map((pm) => (
+                      <label
+                        key={pm.value}
+                        className="flex items-center gap-2 border rounded-md p-3 cursor-pointer hover:bg-muted"
+                      >
+                        <RadioGroupItem value={pm.value} />
+                        <span className="text-sm font-medium">{pm.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </RadioGroup>
+              </CardContent>
+            </Card>
+
+            {/* Financing Details (conditional) */}
+            {watch("paymentMethod") === "finance" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Financing Details</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="financingOption">Financing Company</Label>
+                      <select
+                        id="financingOption"
+                        {...register("financingOption")}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        <option value="">Select company</option>
+                        {FORM_OPTIONS.financingOption.map((f) => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="financingLoanId">Loan ID</Label>
+                      <Input id="financingLoanId" {...register("financingLoanId")} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="financingPlan">Plan Type</Label>
+                      <Input id="financingPlan" {...register("financingPlan")} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Payment Notes */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  {...register("paymentNotes")}
+                  placeholder="Enter payment notes..."
+                  rows={3}
+                />
               </CardContent>
             </Card>
 

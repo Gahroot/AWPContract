@@ -127,6 +127,36 @@ export async function PATCH(
           authNumber: contractData.authNumber ?? undefined,
           marketingSource: contractData.marketingSource ?? undefined,
           paymentMethod: contractData.paymentMethod ?? undefined,
+          customerState: contractData.customerState ?? undefined,
+          territory: contractData.territory ?? undefined,
+          setter: contractData.setter ?? undefined,
+          preferredCommunication: contractData.preferredCommunication ?? undefined,
+          awpInstall: contractData.awpInstall ?? undefined,
+          downPaymentMethod: contractData.downPaymentMethod ?? undefined,
+          financingOption: contractData.financingOption ?? undefined,
+          financingLoanId: contractData.financingLoanId ?? undefined,
+          financingPlan: contractData.financingPlan ?? undefined,
+          coatedColor: contractData.coatedColor ?? undefined,
+          interiorShutters: contractData.interiorShutters ?? undefined,
+          windowsBeingRemoved: contractData.windowsBeingRemoved ?? undefined,
+          paymentNotes: contractData.paymentNotes ?? undefined,
+          contractNotes: contractData.contractNotes ?? undefined,
+          customerNotes: contractData.customerNotes ?? undefined,
+          brickApplicationQty: contractData.brickApplicationQty !== undefined
+            ? parseInt(contractData.brickApplicationQty) || 0
+            : undefined,
+          stuccoApplicationQty: contractData.stuccoApplicationQty !== undefined
+            ? parseInt(contractData.stuccoApplicationQty) || 0
+            : undefined,
+          sidingApplicationQty: contractData.sidingApplicationQty !== undefined
+            ? parseInt(contractData.sidingApplicationQty) || 0
+            : undefined,
+          foundationApplicationQty: contractData.foundationApplicationQty !== undefined
+            ? parseInt(contractData.foundationApplicationQty) || 0
+            : undefined,
+          woodApplicationQty: contractData.woodApplicationQty !== undefined
+            ? parseInt(contractData.woodApplicationQty) || 0
+            : undefined,
           measurementNotes: contractData.measurementNotes ?? undefined,
           contractorSignature: contractData.contractorSignature ?? undefined,
           contractorSignatureDate: contractData.contractorSignatureDate

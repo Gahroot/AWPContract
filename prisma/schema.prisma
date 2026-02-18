@@ -127,6 +127,28 @@ model Contract {
   // Payment
   paymentMethod    String?
 
+  // New fields for HubSpot sync
+  customerState            String?
+  territory                String?
+  setter                   String?
+  preferredCommunication   String?
+  awpInstall               Boolean  @default(false)
+  downPaymentMethod        String?
+  financingOption          String?
+  financingLoanId          String?
+  financingPlan            String?
+  coatedColor              String?
+  interiorShutters         String?
+  windowsBeingRemoved      String?
+  paymentNotes             String?
+  contractNotes            String?
+  customerNotes            String?
+  brickApplicationQty      Int      @default(0)
+  stuccoApplicationQty     Int      @default(0)
+  sidingApplicationQty     Int      @default(0)
+  foundationApplicationQty Int      @default(0)
+  woodApplicationQty       Int      @default(0)
+
   // Notes
   measurementNotes String?
 

@@ -1657,6 +1657,57 @@ export const FORM_OPTIONS = {
     "Black",
     "Custom",
   ],
+
+  territory: [
+    "Idaho",
+    "PHX Direct",
+    "PHX Traditional",
+    "SLC Direct",
+    "SLC Traditional",
+    "St. George Traditional",
+    "St. George National",
+    "St. George Direct",
+    "Utah County",
+    "Vancouver",
+    "Wyoming",
+  ],
+
+  preferredCommunication: ["Phone", "Text", "Email"],
+
+  financingOption: ["Wells Fargo", "EnerBank", "Synchrony", "Other"],
+
+  interiorShutters: [
+    "No",
+    "Installer removal & reinstall",
+    "Customer removal & reinstall",
+  ],
+
+  windowsBeingRemoved: ["Fiberglass", "Aluminum", "Wood", "Vinyl", "Other"],
+
+  downPaymentMethod: [
+    { value: "ach", label: "ACH" },
+    { value: "cash", label: "Cash" },
+    { value: "check", label: "Check" },
+    { value: "credit_card", label: "Credit Card" },
+    { value: "zero_down", label: "$0 Down" },
+  ],
+
+  coatedColor: [
+    "Black",
+    "922 Bronze",
+    "Dark Tan DK-232",
+    "145 Clay",
+    "310 Grey",
+    "510 Red",
+    "Medium Brown 905",
+    "Light Tan DK-202",
+    "642 Forest Green",
+    "933 Taupe",
+  ],
+
+  states: [
+    "AZ", "CA", "CO", "ID", "MT", "NV", "NM", "OR", "TX", "UT", "WA", "WY",
+  ],
 };
 
 // ─── Contract Statuses ──────────────────────────────────────────────────────
