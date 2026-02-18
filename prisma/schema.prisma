@@ -104,11 +104,11 @@ model Contract {
   customerZip      String?
 
   // Job Details
-  salesman         String?
-  measurementDate  DateTime?
-  leadTest         String?
-  yearBuilt        String?
-  houseType        String?
+  salesman    String?
+  measuredBy   String?
+  leadTest    String?
+  yearBuilt   String?
+  houseType   String?
 
   // Pricing
   total            Float          @default(0)
@@ -128,18 +128,13 @@ model Contract {
   paymentMethod    String?
 
   // New fields for HubSpot sync
-  customerState            String?
-  territory                String?
-  setter                   String?
-  preferredCommunication   String?
-  awpInstall               Boolean  @default(false)
-  downPaymentMethod        String?
-  financingOption          String?
-  financingLoanId          String?
-  financingPlan            String?
-  coatedColor              String?
-  interiorShutters         String?
-  windowsBeingRemoved      String?
+  customerState          String?
+  preferredCommunication String?
+  downPaymentMethod      String?
+  financingOption        String?
+  financingLoanId        String?
+  financingPlan          String?
+  windowsBeingRemoved    String?
   paymentNotes             String?
   contractNotes            String?
   customerNotes            String?

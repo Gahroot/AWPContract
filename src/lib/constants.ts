@@ -1658,29 +1658,9 @@ export const FORM_OPTIONS = {
     "Custom",
   ],
 
-  territory: [
-    "Idaho",
-    "PHX Direct",
-    "PHX Traditional",
-    "SLC Direct",
-    "SLC Traditional",
-    "St. George Traditional",
-    "St. George National",
-    "St. George Direct",
-    "Utah County",
-    "Vancouver",
-    "Wyoming",
-  ],
-
   preferredCommunication: ["Phone", "Text", "Email"],
 
   financingOption: ["Wells Fargo", "EnerBank", "Synchrony", "Other"],
-
-  interiorShutters: [
-    "No",
-    "Installer removal & reinstall",
-    "Customer removal & reinstall",
-  ],
 
   windowsBeingRemoved: ["Fiberglass", "Aluminum", "Wood", "Vinyl", "Other"],
 
@@ -1690,19 +1670,6 @@ export const FORM_OPTIONS = {
     { value: "check", label: "Check" },
     { value: "credit_card", label: "Credit Card" },
     { value: "zero_down", label: "$0 Down" },
-  ],
-
-  coatedColor: [
-    "Black",
-    "922 Bronze",
-    "Dark Tan DK-232",
-    "145 Clay",
-    "310 Grey",
-    "510 Red",
-    "Medium Brown 905",
-    "Light Tan DK-202",
-    "642 Forest Green",
-    "933 Taupe",
   ],
 
   states: [
@@ -1729,26 +1696,6 @@ export const BOOLEAN_ADDON_LABELS: Record<string, string> = {
   coated: "Coated",
   awpShutterRnr: "Shutter RNR",
 };
-
-// ─── Territory → Market Mapping ──────────────────────────────────────────────
-
-export const TERRITORY_TO_MARKET: Record<string, Market> = {
-  "Idaho": "SLC",
-  "PHX Direct": "PHOENIX",
-  "PHX Traditional": "PHOENIX",
-  "SLC Direct": "SLC",
-  "SLC Traditional": "SLC",
-  "St. George Traditional": "SLC",
-  "St. George National": "SLC",
-  "St. George Direct": "SLC",
-  "Utah County": "OREM",
-  "Vancouver": "VANCOUVER",
-  "Wyoming": "SLC",
-};
-
-export function getMarketFromTerritory(territory: string): Market {
-  return TERRITORY_TO_MARKET[territory] || "SLC";
-}
 
 // ─── Display Style Helpers ───────────────────────────────────────────────────
 

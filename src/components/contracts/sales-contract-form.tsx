@@ -71,12 +71,10 @@ export function SalesContractForm({
           customerCity: initialData.customerCity || "",
           customerZip: initialData.customerZip || "",
           salesman: initialData.salesman || "",
-          measurementDate: initialData.measurementDate
-            ? new Date(initialData.measurementDate).toISOString().split("T")[0]
-            : "",
           leadTest: initialData.leadTest || "",
           yearBuilt: initialData.yearBuilt || "",
           houseType: initialData.houseType || "",
+          measuredBy: initialData.measuredBy || "",
           lineItems:
             (initialData.lineItems?.length ?? 0) > 0
               ? initialData.lineItems!
@@ -110,16 +108,11 @@ export function SalesContractForm({
           marketingSource: initialData.marketingSource || [],
           paymentMethod: initialData.paymentMethod || "",
           customerState: initialData.customerState || "",
-          territory: initialData.territory || "",
-          setter: initialData.setter || "",
           preferredCommunication: initialData.preferredCommunication || "",
-          awpInstall: initialData.awpInstall || false,
           downPaymentMethod: initialData.downPaymentMethod || "",
           financingOption: initialData.financingOption || "",
           financingLoanId: initialData.financingLoanId || "",
           financingPlan: initialData.financingPlan || "",
-          coatedColor: initialData.coatedColor || "",
-          interiorShutters: initialData.interiorShutters || "",
           windowsBeingRemoved: initialData.windowsBeingRemoved || "",
           paymentNotes: initialData.paymentNotes || "",
           contractNotes: initialData.contractNotes || "",
@@ -162,7 +155,6 @@ export function SalesContractForm({
           discount: 0,
           downPayment: 0,
           financeBalance: 0,
-          awpInstall: false,
           brickApplicationQty: 0,
           stuccoApplicationQty: 0,
           sidingApplicationQty: 0,
@@ -470,11 +462,10 @@ export function SalesContractForm({
                 <Input id="salesman" {...register("salesman")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="measurementDate">Measurement Date</Label>
+                <Label htmlFor="measuredBy">Measured By</Label>
                 <Input
-                  id="measurementDate"
-                  type="date"
-                  {...register("measurementDate")}
+                  id="measuredBy"
+                  {...register("measuredBy")}
                 />
               </div>
               <div className="space-y-2">
@@ -511,33 +502,6 @@ export function SalesContractForm({
             <Separator className="my-4" />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="territory">Territory</Label>
-                <select
-                  id="territory"
-                  {...register("territory")}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Select territory</option>
-                  {FORM_OPTIONS.territory.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="setter">Setter</Label>
-                <Input id="setter" {...register("setter")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="awpInstall">AWP Install</Label>
-                <div className="pt-1">
-                  <Switch
-                    id="awpInstall"
-                    checked={watch("awpInstall") || false}
-                    onCheckedChange={(checked) => setValue("awpInstall", checked, { shouldDirty: true })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="windowsBeingRemoved">Windows Being Removed</Label>
                 <select
                   id="windowsBeingRemoved"
@@ -547,32 +511,6 @@ export function SalesContractForm({
                   <option value="">Select type</option>
                   {FORM_OPTIONS.windowsBeingRemoved.map((w) => (
                     <option key={w} value={w}>{w}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="interiorShutters">Interior Shutters</Label>
-                <select
-                  id="interiorShutters"
-                  {...register("interiorShutters")}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Select option</option>
-                  {FORM_OPTIONS.interiorShutters.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="coatedColor">Coated Color</Label>
-                <select
-                  id="coatedColor"
-                  {...register("coatedColor")}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  <option value="">Select color</option>
-                  {FORM_OPTIONS.coatedColor.map((c) => (
-                    <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
               </div>

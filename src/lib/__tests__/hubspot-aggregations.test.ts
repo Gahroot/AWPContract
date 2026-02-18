@@ -155,15 +155,12 @@ describe("buildDealProperties", () => {
       customerZip: "84101",
       customerState: "UT",
       salesman: "Jane Sales",
-      measurementDate: new Date("2026-01-15"),
+      measuredBy: "Jane Sales",
       leadTest: "Yes",
       yearBuilt: "1995",
       houseType: "Brick",
       measurementNotes: "Test notes",
-      territory: "SLC Direct",
-      setter: "Bob Setter",
       preferredCommunication: "Phone",
-      awpInstall: true,
       total: 5000,
       discount: 500,
       contractTotal: 4500,
@@ -182,8 +179,6 @@ describe("buildDealProperties", () => {
       paymentNotes: "Payment note",
       contractNotes: "Contract note",
       customerNotes: "Customer note",
-      coatedColor: "Black",
-      interiorShutters: "No",
       windowsBeingRemoved: "Aluminum",
       brickApplicationQty: 5,
       stuccoApplicationQty: 3,
@@ -228,13 +223,11 @@ describe("buildDealProperties", () => {
 
     // Sales
     expect(props.sales_rep).toBe("Jane Sales");
-    expect(props.territory).toBe("SLC Direct");
-    expect(props.setter).toBe("Bob Setter");
+    expect(props.measured_by).toBe("Jane Sales");
     expect(props.preferred_communication_method).toBe("Phone");
 
     // Home
     expect(props.year_home_was_built).toBe("1995");
-    expect(props.awp_install_).toBe("true");
 
     // Contract
     expect(props.temporary_contract_amount).toBe("5000");
@@ -260,8 +253,6 @@ describe("buildDealProperties", () => {
 
     // Window details
     expect(props.window_type).toBe("Yes"); // has coated item
-    expect(props.coated_color).toBe("Black");
-    expect(props.interior_shutters).toBe("No");
     expect(props.windows_being_removed).toBe("Aluminum");
 
     // Application surfaces
@@ -314,7 +305,6 @@ describe("buildDealProperties", () => {
         customerName: null,
         customerEmail: null,
         customerPhone: null,
-        territory: null,
         paymentMethod: null,
         commissionAmount: null,
         customerSignatureDate: null,
@@ -325,7 +315,6 @@ describe("buildDealProperties", () => {
     expect(props.first_name).toBe("");
     expect(props.last_name).toBe("");
     expect(props.email).toBe("");
-    expect(props.territory).toBe("");
     expect(props.payment_method).toBe("");
     expect(props.commission).toBe("");
     expect(props.original_contract_signed_date).toBe("");

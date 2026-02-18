@@ -43,15 +43,12 @@ interface ContractData {
 
   // Job Details
   salesman: string | null;
-  measurementDate: Date | null;
+  measuredBy: string | null;
   leadTest: string | null;
   yearBuilt: string | null;
   houseType: string | null;
   measurementNotes: string | null;
-  territory: string | null;
-  setter: string | null;
   preferredCommunication: string | null;
-  awpInstall: boolean;
 
   // Pricing
   total: number;
@@ -80,8 +77,6 @@ interface ContractData {
   customerNotes: string | null;
 
   // Window details
-  coatedColor: string | null;
-  interiorShutters: string | null;
   windowsBeingRemoved: string | null;
 
   // Application surfaces
@@ -309,12 +304,10 @@ export function buildDealProperties(contract: ContractData): Record<string, stri
     property_postal_code: contract.customerZip || "",
     // Sales
     sales_rep: contract.salesman || "",
-    territory: contract.territory || "",
-    setter: contract.setter || "",
+    measured_by: contract.measuredBy || "",
     preferred_communication_method: contract.preferredCommunication || "",
     // Home
     year_home_was_built: contract.yearBuilt || "",
-    awp_install_: contract.awpInstall ? "true" : "false",
     // Contract
     temporary_contract_amount: String(contract.total),
     original_contract_signed_date: formatDate(contract.customerSignatureDate),
@@ -336,8 +329,6 @@ export function buildDealProperties(contract: ContractData): Record<string, stri
     // Window details
     window_type: agg.windowType,
     window_color: agg.windowColor,
-    coated_color: contract.coatedColor || "",
-    interior_shutters: contract.interiorShutters || "",
     windows_being_removed: contract.windowsBeingRemoved || "",
     // Application surfaces
     brick_applications: String(contract.brickApplicationQty),
@@ -832,15 +823,12 @@ export function toContractData(
 
     // Job Details
     salesman: contract.salesman,
-    measurementDate: contract.measurementDate,
+    measuredBy: contract.measuredBy,
     leadTest: contract.leadTest,
     yearBuilt: contract.yearBuilt,
     houseType: contract.houseType,
     measurementNotes: contract.measurementNotes,
-    territory: contract.territory,
-    setter: contract.setter,
     preferredCommunication: contract.preferredCommunication,
-    awpInstall: contract.awpInstall,
 
     // Pricing
     total: contract.total,
@@ -869,8 +857,6 @@ export function toContractData(
     customerNotes: contract.customerNotes,
 
     // Window details
-    coatedColor: contract.coatedColor,
-    interiorShutters: contract.interiorShutters,
     windowsBeingRemoved: contract.windowsBeingRemoved,
 
     // Application surfaces

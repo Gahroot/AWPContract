@@ -41,7 +41,6 @@ import {
   OPERATIONS,
   PRODUCTS,
   CUSTOM_SHAPE_STYLES,
-  getMarketFromTerritory,
   getAvailableStyles,
   getAvailableSeries,
   findProduct,
@@ -93,12 +92,8 @@ export function LineItemsTable() {
     name: "lineItems",
   });
 
-  // Watch territory to derive market
-  const territory = useWatch({ control, name: "territory" });
-  const market = useMemo(
-    () => getMarketFromTerritory(territory || ""),
-    [territory],
-  );
+  // Default market for product catalog
+  const market: Market = "SLC";
 
   // Watch all line items for price recalculation
   const lineItems = useWatch({ control, name: "lineItems" });
