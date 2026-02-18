@@ -116,7 +116,7 @@ export const ADD_ONS = {
 // ─── Products by Market ────────────────────────────────────────────────────
 
 // Product definition interface
-interface ProductDef {
+export interface ProductDef {
   code: string;
   shortCode?: string;
   name: string;
@@ -1729,3 +1729,166 @@ export const BOOLEAN_ADDON_LABELS: Record<string, string> = {
   coated: "Coated",
   awpShutterRnr: "Shutter RNR",
 };
+
+// ─── Territory → Market Mapping ──────────────────────────────────────────────
+
+export const TERRITORY_TO_MARKET: Record<string, Market> = {
+  "Idaho": "SLC",
+  "PHX Direct": "PHOENIX",
+  "PHX Traditional": "PHOENIX",
+  "SLC Direct": "SLC",
+  "SLC Traditional": "SLC",
+  "St. George Traditional": "SLC",
+  "St. George National": "SLC",
+  "St. George Direct": "SLC",
+  "Utah County": "OREM",
+  "Vancouver": "VANCOUVER",
+  "Wyoming": "SLC",
+};
+
+export function getMarketFromTerritory(territory: string): Market {
+  return TERRITORY_TO_MARKET[territory] || "SLC";
+}
+
+// ─── Display Style Helpers ───────────────────────────────────────────────────
+
+const SERIES_PREFIXES = [
+  "Patriot High Performance ",
+  "High Performance ",
+  "Patriot ",
+  "Sunview ",
+  "Signature ",
+  "Autograph ",
+  "Imperial ",
+  "Legacy ",
+];
+
+const STYLE_NORMALIZATIONS: Record<string, string> = {
+  "Horizontal Slider": "Single Slider",
+  "Picture Window": "Picture",
+  "Sliding Glass Door": "Sliding Door",
+  "Right Triangle (L/R)": "Right Triangle",
+  "Equilateral Triangle": "Equilateral Triangle",
+  "Isosceles Triangle": "Isosceles Triangle",
+  "Half Eyebrow (L/R)": "Half Eyebrow",
+  "Quarter Round (L/R)": "Quarter Round",
+  "Extended Leg Quarter Round (L/R)": "Ext Leg Quarter Round",
+  "Extended Leg Eyebrow": "Ext Leg Eyebrow",
+  "Extended Leg Half Eyebrow": "Ext Leg Half Eyebrow",
+  "Extended Leg Half Round": "Ext Leg Half Round",
+  "Pentagon (L/R)": "Pentagon",
+  "Trapezoid (L/R)": "Trapezoid",
+  "Oriol Single Hung": "Oriel Single Hung",
+};
+
+/** Derives a human-friendly display style from a product definition */
+export function getProductDisplayStyle(product: ProductDef): string {
+  let style = product.name;
+  for (const prefix of SERIES_PREFIXES) {
+    if (style.startsWith(prefix)) {
+      style = style.slice(prefix.length);
+      break;
+    }
+  }
+  return STYLE_NORMALIZATIONS[style] || style;
+}
+
+// ─── Style Categories (for grouped dropdowns) ───────────────────────────────
+
+export const STYLE_CATEGORIES: Record<string, string[]> = {
+  "Standard": ["Single Slider", "Single Hung", "Double Vent", "Picture"],
+  "Additional": [
+    "Double Hung", "Double Slider", "Variable Sash Slider",
+    "Oriel Single Hung", "Variable Sash Single Hung",
+    "Casement", "Casement Picture", "Awning",
+  ],
+  "Arch Shapes": [
+    "Half Round", "Ext Leg Half Round",
+    "Quarter Round", "Ext Leg Quarter Round",
+    "Circle", "Eyebrow", "Ext Leg Eyebrow",
+    "Half Eyebrow", "Ext Leg Half Eyebrow",
+    "Arch Top Single Hung",
+  ],
+  "Other Shapes": [
+    "Right Triangle", "Equilateral Triangle", "Isosceles Triangle",
+    "Pentagon", "Gable Pentagon", "Octagon", "Trapezoid",
+  ],
+  "Doors": ["Sliding Door", "Single Swing Door", "Atrium Door", "French Door"],
+};
+
+/** Returns available styles for a market+type combo, grouped by category */
+export function getAvailableStyles(
+  market: Market,
+  type: "Window" | "Door",
+): Array<{ category: string; styles: string[] }> {
+  const products = getProductsByMarket(market).filter((p) => p.type === type);
+  const availableStyles = new Set(products.map(getProductDisplayStyle));
+
+  const result: Array<{ category: string; styles: string[] }> = [];
+  for (const [category, styles] of Object.entries(STYLE_CATEGORIES)) {
+    const filtered = styles.filter((s) => availableStyles.has(s));
+    if (filtered.length > 0) {
+      result.push({ category, styles: filtered });
+    }
+  }
+  return result;
+}
+
+/** Returns which series options exist for a given market+type+style combo */
+export function getAvailableSeries(
+  market: Market,
+  type: "Window" | "Door",
+  displayStyle: string,
+): Array<{ value: string; label: string }> {
+  const products = getProductsByMarket(market).filter(
+    (p) => p.type === type && getProductDisplayStyle(p) === displayStyle,
+  );
+
+  const seen = new Set<string>();
+  const result: Array<{ value: string; label: string }> = [];
+  for (const p of products) {
+    if (!seen.has(p.series)) {
+      seen.add(p.series);
+      result.push({ value: p.series, label: p.series });
+    }
+  }
+  return result;
+}
+
+/** Resolves the exact product from cascading selections */
+export function findProduct(
+  market: Market,
+  type: "Window" | "Door",
+  displayStyle: string,
+  series: string,
+): ProductDef | undefined {
+  return getProductsByMarket(market).find(
+    (p) =>
+      p.type === type &&
+      getProductDisplayStyle(p) === displayStyle &&
+      p.series === series,
+  );
+}
+
+/** Set of styles that are considered "custom shapes" (auto-tick customShape) */
+export const CUSTOM_SHAPE_STYLES = new Set([
+  ...STYLE_CATEGORIES["Arch Shapes"],
+  ...STYLE_CATEGORIES["Other Shapes"],
+]);
+
+/** Returns available exterior colors for a market */
+export function getColorsForMarket(market: Market): string[] {
+  return [...COLORS_BY_MARKET[market].exterior];
+}
+
+/** Backwards compat: derive display state from an existing productCode */
+export function initFromProductCode(
+  code: string,
+): { displayStyle: string; series: string } | null {
+  const product = getProductByCode(code);
+  if (!product) return null;
+  return {
+    displayStyle: getProductDisplayStyle(product),
+    series: product.series,
+  };
+}

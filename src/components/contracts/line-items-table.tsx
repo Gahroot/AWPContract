@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import {
   Table,
   TableBody,
   TableCell,
@@ -20,17 +33,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
-  FORM_OPTIONS,
   BOOLEAN_ADDON_LABELS,
-  getProductsByMarket,
-  PRODUCTS,
+  FORM_OPTIONS,
   OPERATIONS,
+  PRODUCTS,
+  CUSTOM_SHAPE_STYLES,
+  getMarketFromTerritory,
+  getAvailableStyles,
+  getAvailableSeries,
+  findProduct,
+  getColorsForMarket,
+  initFromProductCode,
+  type Market,
+  type ProductDef,
 } from "@/lib/constants";
 import { calculateLineItem, formatCurrency } from "@/lib/pricing";
 import { type LineItemFormValues } from "@/lib/validations";
-import { useEffect, useState } from "react";
 
 const BOOLEAN_FIELDS = [
   "temperedGlass",
@@ -48,15 +69,13 @@ const defaultLineItem = {
   width: 0,
   height: 0,
   color: "White",
-  series: "Patriot",
+  series: "",
   frame: "Nail Fin",
-  function: "Slider",
-  // New product fields
+  function: "",
   productCode: "",
   operation: "",
   gridType: "",
   glassType: "",
-  // Boolean addons
   temperedGlass: false,
   obscuredGlass: false,
   customShape: false,
@@ -74,6 +93,13 @@ export function LineItemsTable() {
     name: "lineItems",
   });
 
+  // Watch territory to derive market
+  const territory = useWatch({ control, name: "territory" });
+  const market = useMemo(
+    () => getMarketFromTerritory(territory || ""),
+    [territory],
+  );
+
   // Watch all line items for price recalculation
   const lineItems = useWatch({ control, name: "lineItems" });
 
@@ -86,15 +112,13 @@ export function LineItemsTable() {
         height: Number(item.height) || 0,
         qty: Number(item.qty) || 1,
         color: item.color || "White",
-        series: item.series || "Patriot",
+        series: item.series || "",
         frame: item.frame || "Nail Fin",
-        function: item.function || "Slider",
-        // New product fields
+        function: item.function || "",
         productCode: item.productCode,
         operation: item.operation,
         gridType: item.gridType,
         glassType: item.glassType,
-        // Boolean addons
         temperedGlass: !!item.temperedGlass,
         obscuredGlass: !!item.obscuredGlass,
         customShape: !!item.customShape,
@@ -121,17 +145,17 @@ export function LineItemsTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="min-w-[100px]">Location</TableHead>
-              <TableHead className="min-w-[160px]">Product</TableHead>
+              <TableHead className="min-w-[90px]">Type</TableHead>
+              <TableHead className="min-w-[150px]">Style</TableHead>
+              <TableHead className="min-w-[130px]">Series</TableHead>
               <TableHead className="w-16">Qty</TableHead>
               <TableHead className="w-20">Width (ft)</TableHead>
               <TableHead className="w-20">Height (ft)</TableHead>
-              <TableHead className="min-w-[100px]">Color</TableHead>
-              <TableHead className="min-w-[100px]">Series</TableHead>
+              <TableHead className="min-w-[110px]">Color</TableHead>
+              <TableHead className="min-w-[100px]">Frame</TableHead>
               <TableHead className="min-w-[100px]">Operation</TableHead>
               <TableHead className="min-w-[100px]">Grid Type</TableHead>
               <TableHead className="min-w-[100px]">Glass Type</TableHead>
-              <TableHead className="min-w-[100px]">Frame</TableHead>
-              <TableHead className="min-w-[100px]">Function</TableHead>
               {BOOLEAN_FIELDS.map((field) => (
                 <TableHead key={field} className="w-14 text-center text-xs">
                   {BOOLEAN_ADDON_LABELS[field]}
@@ -146,12 +170,13 @@ export function LineItemsTable() {
               <LineItemRow
                 key={field.id}
                 index={index}
+                market={market}
                 canRemove={fields.length > 1}
                 onRemove={() => remove(index)}
               />
             ))}
             <TableRow>
-              <TableCell colSpan={BOOLEAN_FIELDS.length + 15}>
+              <TableCell colSpan={BOOLEAN_FIELDS.length + 14}>
                 <Button
                   type="button"
                   variant="outline"
@@ -173,10 +198,12 @@ export function LineItemsTable() {
 
 function LineItemRow({
   index,
+  market,
   canRemove,
   onRemove,
 }: {
   index: number;
+  market: Market;
   canRemove: boolean;
   onRemove: () => void;
 }) {
@@ -184,51 +211,183 @@ function LineItemRow({
 
   const price = useWatch({ control, name: `lineItems.${index}.price` });
   const productCode = useWatch({ control, name: `lineItems.${index}.productCode` });
+  const itemType = useWatch({ control, name: `lineItems.${index}.type` }) || "Window";
 
-  // Get available products for SLC market (MVP)
-  const [products] = useState(() => getProductsByMarket("SLC"));
-  const [selectedProduct, setSelectedProduct] = useState(
-    productCode ? PRODUCTS[productCode] : null
+  // Local state for the display style (not stored in form, derived from cascade)
+  const [selectedStyle, setSelectedStyle] = useState("");
+  const [resolvedProduct, setResolvedProduct] = useState<ProductDef | null>(null);
+  const [initialized, setInitialized] = useState(false);
+
+  // Backwards compat: populate selectedStyle from existing productCode on mount
+  useEffect(() => {
+    if (initialized) return;
+    setInitialized(true);
+
+    const code = getValues(`lineItems.${index}.productCode`);
+    if (code) {
+      const init = initFromProductCode(code);
+      if (init) {
+        setSelectedStyle(init.displayStyle);
+        // Resolve the product for filtering dependent dropdowns
+        const product = findProduct(market, itemType as "Window" | "Door", init.displayStyle, init.series);
+        setResolvedProduct(product || null);
+        return;
+      }
+    }
+
+    // Fallback: if series/function are set but no productCode (legacy data)
+    const series = getValues(`lineItems.${index}.series`);
+    const fn = getValues(`lineItems.${index}.function`);
+    if (series && fn) {
+      const match = (Object.values(PRODUCTS) as ProductDef[]).find(
+        (p) => p.series === series && p.function === fn && p.markets.includes(market),
+      );
+      if (match) {
+        const init = initFromProductCode(match.code);
+        if (init) {
+          setSelectedStyle(init.displayStyle);
+          setResolvedProduct(match);
+          setValue(`lineItems.${index}.productCode`, match.code, { shouldDirty: false });
+        }
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Compute available styles for current market + type
+  const availableStyles = useMemo(
+    () => getAvailableStyles(market, itemType as "Window" | "Door"),
+    [market, itemType],
   );
 
-  // Handle product code change - auto-fill series, function, and set valid options
-  const handleProductCodeChange = (code: string) => {
-    setValue(`lineItems.${index}.productCode`, code, { shouldDirty: true });
-    const product = PRODUCTS[code];
-    setSelectedProduct(product || null);
+  // Compute available series for current style
+  const availableSeries = useMemo(
+    () =>
+      selectedStyle
+        ? getAvailableSeries(market, itemType as "Window" | "Door", selectedStyle)
+        : [],
+    [market, itemType, selectedStyle],
+  );
 
-    if (product) {
-      // Auto-fill series and function
-      setValue(`lineItems.${index}.series`, product.series, { shouldDirty: true });
-      setValue(`lineItems.${index}.function`, product.function, { shouldDirty: true });
-      setValue(`lineItems.${index}.type`, product.type, { shouldDirty: true });
+  // Market-aware colors
+  const marketColors = useMemo(() => getColorsForMarket(market), [market]);
 
-      // Set default operation if product has only one option
-      if (product.operations.length === 1) {
-        setValue(`lineItems.${index}.operation`, product.operations[0], { shouldDirty: true });
+  // Check if current productCode is valid for the market (red border indicator)
+  const isProductInvalid = useMemo(() => {
+    if (!productCode) return false;
+    const init = initFromProductCode(productCode);
+    if (!init) return true;
+    const product = findProduct(market, itemType as "Window" | "Door", init.displayStyle, init.series);
+    return !product;
+  }, [productCode, market, itemType]);
+
+  // Resolve product and update form fields
+  const resolveAndSetProduct = useCallback(
+    (style: string, series: string) => {
+      const product = findProduct(market, itemType as "Window" | "Door", style, series);
+      setResolvedProduct(product || null);
+
+      if (product) {
+        setValue(`lineItems.${index}.productCode`, product.code, { shouldDirty: true });
+        setValue(`lineItems.${index}.series`, product.series, { shouldDirty: true });
+        setValue(`lineItems.${index}.function`, product.function, { shouldDirty: true });
+
+        // Auto-set defaults for single-option fields
+        if (product.operations.length === 1) {
+          setValue(`lineItems.${index}.operation`, product.operations[0], { shouldDirty: true });
+        } else {
+          // Clear if current value isn't in new product's operations
+          const currentOp = getValues(`lineItems.${index}.operation`);
+          if (currentOp && !product.operations.includes(currentOp as never)) {
+            setValue(`lineItems.${index}.operation`, "", { shouldDirty: true });
+          }
+        }
+
+        if (product.grids.length === 1) {
+          setValue(`lineItems.${index}.gridType`, product.grids[0], { shouldDirty: true });
+        } else {
+          const currentGrid = getValues(`lineItems.${index}.gridType`);
+          if (currentGrid && !product.grids.includes(currentGrid as never)) {
+            setValue(`lineItems.${index}.gridType`, "", { shouldDirty: true });
+          }
+        }
+
+        if (product.glassTypes.length === 1) {
+          setValue(`lineItems.${index}.glassType`, product.glassTypes[0], { shouldDirty: true });
+        } else {
+          const currentGlass = getValues(`lineItems.${index}.glassType`);
+          if (currentGlass && !product.glassTypes.includes(currentGlass as never)) {
+            setValue(`lineItems.${index}.glassType`, "", { shouldDirty: true });
+          }
+        }
+
+        // Sunview constraints: White only, Flush Fin only
+        if (product.series === "Sunview") {
+          setValue(`lineItems.${index}.color`, "White", { shouldDirty: true });
+          setValue(`lineItems.${index}.frame`, "Flush Fin", { shouldDirty: true });
+        }
+      } else {
+        setValue(`lineItems.${index}.productCode`, "", { shouldDirty: true });
+        setValue(`lineItems.${index}.series`, "", { shouldDirty: true });
+        setValue(`lineItems.${index}.function`, "", { shouldDirty: true });
       }
+    },
+    [market, itemType, index, setValue, getValues],
+  );
 
-      // Set default grid type if product has only one option
-      if (product.grids.length === 1) {
-        setValue(`lineItems.${index}.gridType`, product.grids[0], { shouldDirty: true });
-      }
+  // Type change handler
+  const handleTypeChange = (newType: string) => {
+    setValue(`lineItems.${index}.type`, newType, { shouldDirty: true });
+    setSelectedStyle("");
+    setResolvedProduct(null);
+    setValue(`lineItems.${index}.productCode`, "", { shouldDirty: true });
+    setValue(`lineItems.${index}.series`, "", { shouldDirty: true });
+    setValue(`lineItems.${index}.function`, "", { shouldDirty: true });
+    setValue(`lineItems.${index}.operation`, "", { shouldDirty: true });
+    setValue(`lineItems.${index}.gridType`, "", { shouldDirty: true });
+    setValue(`lineItems.${index}.glassType`, "", { shouldDirty: true });
+  };
 
-      // Set default glass type if product has only one option
-      if (product.glassTypes.length === 1) {
-        setValue(`lineItems.${index}.glassType`, product.glassTypes[0], { shouldDirty: true });
-      }
+  // Style change handler
+  const handleStyleChange = (style: string) => {
+    setSelectedStyle(style);
+
+    // Auto-tick customShape for custom shape styles
+    const isCustomShape = CUSTOM_SHAPE_STYLES.has(style);
+    setValue(`lineItems.${index}.customShape`, isCustomShape, { shouldDirty: true });
+
+    const series = getAvailableSeries(market, itemType as "Window" | "Door", style);
+
+    if (series.length === 1) {
+      // Auto-select the only available series
+      setValue(`lineItems.${index}.series`, series[0].value, { shouldDirty: true });
+      resolveAndSetProduct(style, series[0].value);
+    } else {
+      // Reset series and let user pick
+      setValue(`lineItems.${index}.series`, "", { shouldDirty: true });
+      setResolvedProduct(null);
+      setValue(`lineItems.${index}.productCode`, "", { shouldDirty: true });
+      setValue(`lineItems.${index}.function`, "", { shouldDirty: true });
+      setValue(`lineItems.${index}.operation`, "", { shouldDirty: true });
+      setValue(`lineItems.${index}.gridType`, "", { shouldDirty: true });
+      setValue(`lineItems.${index}.glassType`, "", { shouldDirty: true });
     }
   };
 
-  // Get valid operations for selected product
-  const validOperations = selectedProduct?.operations || [];
-  // Get valid grid types for selected product
-  const validGridTypes = selectedProduct?.grids || [];
-  // Get valid glass types for selected product
-  const validGlassTypes = selectedProduct?.glassTypes || [];
+  // Series change handler
+  const handleSeriesChange = (series: string) => {
+    setValue(`lineItems.${index}.series`, series, { shouldDirty: true });
+    resolveAndSetProduct(selectedStyle, series);
+  };
+
+  // Valid options for dependent dropdowns
+  const validOperations = resolvedProduct?.operations || [];
+  const validGridTypes = resolvedProduct?.grids || [];
+  const validGlassTypes = resolvedProduct?.glassTypes || [];
 
   return (
-    <TableRow>
+    <TableRow className={isProductInvalid ? "ring-2 ring-inset ring-destructive" : ""}>
+      {/* Location */}
       <TableCell>
         <Input
           {...register(`lineItems.${index}.location`)}
@@ -236,26 +395,64 @@ function LineItemRow({
           className="min-w-[90px]"
         />
       </TableCell>
+
+      {/* Type */}
       <TableCell>
         <Select
-          value={getValues(`lineItems.${index}.productCode`) || ""}
-          onValueChange={handleProductCodeChange}
+          value={itemType}
+          onValueChange={handleTypeChange}
         >
-          <SelectTrigger className="min-w-[150px]">
-            <SelectValue placeholder="Select product" />
+          <SelectTrigger className="min-w-[80px]">
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">-- None --</SelectItem>
-            {Object.values(products)
-              .sort((a, b) => a.series.localeCompare(b.series))
-              .map((p) => (
-                <SelectItem key={p.code} value={p.code}>
-                  {p.code}
-                </SelectItem>
-              ))}
+            {FORM_OPTIONS.type.map((t) => (
+              <SelectItem key={t} value={t}>
+                {t}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </TableCell>
+
+      {/* Style (searchable combobox) */}
+      <TableCell>
+        <StyleCombobox
+          value={selectedStyle}
+          availableStyles={availableStyles}
+          onSelect={handleStyleChange}
+        />
+      </TableCell>
+
+      {/* Series (with product code badge) */}
+      <TableCell>
+        <div className="space-y-1">
+          <Select
+            value={getValues(`lineItems.${index}.series`) || "__none__"}
+            onValueChange={(v) => handleSeriesChange(v === "__none__" ? "" : v)}
+            disabled={!selectedStyle || availableSeries.length === 0}
+          >
+            <SelectTrigger className="min-w-[120px]">
+              <SelectValue placeholder="Select series" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">-- Select --</SelectItem>
+              {availableSeries.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {resolvedProduct && (
+            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono">
+              {resolvedProduct.shortCode || resolvedProduct.code}
+            </span>
+          )}
+        </div>
+      </TableCell>
+
+      {/* Qty */}
       <TableCell>
         <Input
           {...register(`lineItems.${index}.qty`, { valueAsNumber: true })}
@@ -264,6 +461,8 @@ function LineItemRow({
           className="w-14"
         />
       </TableCell>
+
+      {/* Width */}
       <TableCell>
         <Input
           {...register(`lineItems.${index}.width`, { valueAsNumber: true })}
@@ -273,6 +472,8 @@ function LineItemRow({
           className="w-16"
         />
       </TableCell>
+
+      {/* Height */}
       <TableCell>
         <Input
           {...register(`lineItems.${index}.height`, { valueAsNumber: true })}
@@ -282,18 +483,21 @@ function LineItemRow({
           className="w-16"
         />
       </TableCell>
+
+      {/* Color (market-aware) */}
       <TableCell>
         <Select
           value={getValues(`lineItems.${index}.color`) || "White"}
           onValueChange={(v) =>
             setValue(`lineItems.${index}.color`, v, { shouldDirty: true })
           }
+          disabled={resolvedProduct?.series === "Sunview"}
         >
-          <SelectTrigger className="min-w-[90px]">
+          <SelectTrigger className="min-w-[100px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {FORM_OPTIONS.color.map((c) => (
+            {marketColors.map((c) => (
               <SelectItem key={c} value={c}>
                 {c}
               </SelectItem>
@@ -301,92 +505,15 @@ function LineItemRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell>
-        <Input
-          {...register(`lineItems.${index}.series`)}
-          placeholder="Series"
-          className="min-w-[90px] bg-muted"
-          readOnly
-        />
-      </TableCell>
-      <TableCell>
-        <Select
-          value={getValues(`lineItems.${index}.operation`) || ""}
-          onValueChange={(v) =>
-            setValue(`lineItems.${index}.operation`, v, { shouldDirty: true })
-          }
-          disabled={!selectedProduct || validOperations.length === 0}
-        >
-          <SelectTrigger className="min-w-[90px]">
-            <SelectValue placeholder={validOperations.length === 0 ? "N/A" : "Select"} />
-          </SelectTrigger>
-          <SelectContent>
-            {validOperations.length === 0 ? (
-              <SelectItem value="N/A">N/A</SelectItem>
-            ) : (
-              validOperations.map((op) => (
-                <SelectItem key={op} value={op}>
-                  {op} - {OPERATIONS[op]?.description}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      </TableCell>
-      <TableCell>
-        <Select
-          value={getValues(`lineItems.${index}.gridType`) || ""}
-          onValueChange={(v) =>
-            setValue(`lineItems.${index}.gridType`, v, { shouldDirty: true })
-          }
-          disabled={!selectedProduct || validGridTypes.length === 0}
-        >
-          <SelectTrigger className="min-w-[90px]">
-            <SelectValue placeholder="Select" />
-          </SelectTrigger>
-          <SelectContent>
-            {validGridTypes.length === 0 ? (
-              <SelectItem value="">None</SelectItem>
-            ) : (
-              validGridTypes.map((gt) => (
-                <SelectItem key={gt} value={gt}>
-                  {gt}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      </TableCell>
-      <TableCell>
-        <Select
-          value={getValues(`lineItems.${index}.glassType`) || ""}
-          onValueChange={(v) =>
-            setValue(`lineItems.${index}.glassType`, v, { shouldDirty: true })
-          }
-          disabled={!selectedProduct || validGlassTypes.length === 0}
-        >
-          <SelectTrigger className="min-w-[90px]">
-            <SelectValue placeholder="Select" />
-          </SelectTrigger>
-          <SelectContent>
-            {validGlassTypes.length === 0 ? (
-              <SelectItem value="">None</SelectItem>
-            ) : (
-              validGlassTypes.map((gt) => (
-                <SelectItem key={gt} value={gt}>
-                  {gt}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      </TableCell>
+
+      {/* Frame */}
       <TableCell>
         <Select
           value={getValues(`lineItems.${index}.frame`) || "Nail Fin"}
           onValueChange={(v) =>
             setValue(`lineItems.${index}.frame`, v, { shouldDirty: true })
           }
+          disabled={resolvedProduct?.series === "Sunview"}
         >
           <SelectTrigger className="min-w-[90px]">
             <SelectValue />
@@ -400,14 +527,86 @@ function LineItemRow({
           </SelectContent>
         </Select>
       </TableCell>
+
+      {/* Operation */}
       <TableCell>
-        <Input
-          {...register(`lineItems.${index}.function`)}
-          placeholder="Function"
-          className="min-w-[90px] bg-muted"
-          readOnly
-        />
+        <Select
+          value={getValues(`lineItems.${index}.operation`) || "__none__"}
+          onValueChange={(v) =>
+            setValue(`lineItems.${index}.operation`, v === "__none__" ? "" : v, { shouldDirty: true })
+          }
+          disabled={!resolvedProduct || validOperations.length === 0}
+        >
+          <SelectTrigger className="min-w-[90px]">
+            <SelectValue placeholder={validOperations.length === 0 ? "N/A" : "Select"} />
+          </SelectTrigger>
+          <SelectContent>
+            {validOperations.length === 0 ? (
+              <SelectItem value="__na__">N/A</SelectItem>
+            ) : (
+              validOperations.map((op) => (
+                <SelectItem key={op} value={op}>
+                  {op} - {OPERATIONS[op]?.description}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
       </TableCell>
+
+      {/* Grid Type */}
+      <TableCell>
+        <Select
+          value={getValues(`lineItems.${index}.gridType`) || "__none__"}
+          onValueChange={(v) =>
+            setValue(`lineItems.${index}.gridType`, v === "__none__" ? "" : v, { shouldDirty: true })
+          }
+          disabled={!resolvedProduct || validGridTypes.length === 0}
+        >
+          <SelectTrigger className="min-w-[90px]">
+            <SelectValue placeholder="Select" />
+          </SelectTrigger>
+          <SelectContent>
+            {validGridTypes.length === 0 ? (
+              <SelectItem value="__none__">None</SelectItem>
+            ) : (
+              validGridTypes.map((gt) => (
+                <SelectItem key={gt} value={gt}>
+                  {gt}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      </TableCell>
+
+      {/* Glass Type */}
+      <TableCell>
+        <Select
+          value={getValues(`lineItems.${index}.glassType`) || "__none__"}
+          onValueChange={(v) =>
+            setValue(`lineItems.${index}.glassType`, v === "__none__" ? "" : v, { shouldDirty: true })
+          }
+          disabled={!resolvedProduct || validGlassTypes.length === 0}
+        >
+          <SelectTrigger className="min-w-[90px]">
+            <SelectValue placeholder="Select" />
+          </SelectTrigger>
+          <SelectContent>
+            {validGlassTypes.length === 0 ? (
+              <SelectItem value="__none__">None</SelectItem>
+            ) : (
+              validGlassTypes.map((gt) => (
+                <SelectItem key={gt} value={gt}>
+                  {gt}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      </TableCell>
+
+      {/* Boolean Addons */}
       {BOOLEAN_FIELDS.map((boolField) => (
         <TableCell key={boolField} className="text-center">
           <Checkbox
@@ -420,9 +619,13 @@ function LineItemRow({
           />
         </TableCell>
       ))}
+
+      {/* Price */}
       <TableCell className="text-right font-medium">
         {formatCurrency(price || 0)}
       </TableCell>
+
+      {/* Delete */}
       <TableCell>
         <Button
           type="button"
@@ -437,5 +640,67 @@ function LineItemRow({
         </Button>
       </TableCell>
     </TableRow>
+  );
+}
+
+// ─── Searchable Style Combobox ────────────────────────────────────────────────
+
+function StyleCombobox({
+  value,
+  availableStyles,
+  onSelect,
+}: {
+  value: string;
+  availableStyles: Array<{ category: string; styles: string[] }>;
+  onSelect: (style: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="min-w-[140px] justify-between font-normal h-9 px-3"
+        >
+          <span className="truncate">
+            {value || "Select style"}
+          </span>
+          <ChevronsUpDown className="ml-1 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[220px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search styles..." />
+          <CommandList>
+            <CommandEmpty>No style found.</CommandEmpty>
+            {availableStyles.map((group) => (
+              <CommandGroup key={group.category} heading={group.category}>
+                {group.styles.map((style) => (
+                  <CommandItem
+                    key={style}
+                    value={style}
+                    onSelect={() => {
+                      onSelect(style);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === style ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {style}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
