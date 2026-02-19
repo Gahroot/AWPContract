@@ -1,3 +1,9 @@
+import { vi } from "vitest";
+
+vi.mock("@/lib/auth", () => ({
+  auth: vi.fn().mockResolvedValue({ user: { id: "test-user", role: "ADMIN" } }),
+}));
+
 import { POST } from "@/app/api/pricing/calculate/route";
 import { PRICING } from "@/lib/constants";
 

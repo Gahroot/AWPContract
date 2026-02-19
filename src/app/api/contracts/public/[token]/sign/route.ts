@@ -41,36 +41,32 @@ export async function POST(
       paymentMethod: body.paymentMethod || null,
       status: "SIGNED",
     },
-  });
-
-  // Refetch with lineItems for PDF/sync
-  const fullContract = await db.contract.findUnique({
-    where: { id: contract.id },
     include: { lineItems: { orderBy: { sortOrder: "asc" } } },
   });
 
-  if (fullContract) {
-    // Generate PDF
-    try {
-      const { generateAndSavePdf } = await import("@/lib/pdf");
-      const url = await generateAndSavePdf(fullContract);
-      await db.contract.update({ where: { id: contract.id }, data: { pdfUrl: url } });
-    } catch (e) {
-      console.error("PDF generation failed:", e);
-    }
+  let pdfUrl = updated.pdfUrl;
 
-    // HubSpot sync
-    try {
-      const { syncContractToHubSpot } = await import("@/lib/hubspot");
-      await syncContractToHubSpot(fullContract);
-    } catch (e) {
-      console.error("HubSpot sync failed:", e);
-    }
+  // Generate PDF
+  try {
+    const { generateAndSavePdf } = await import("@/lib/pdf");
+    const url = await generateAndSavePdf(updated);
+    await db.contract.update({ where: { id: contract.id }, data: { pdfUrl: url } });
+    pdfUrl = url;
+  } catch (e) {
+    console.error("PDF generation failed:", e);
+  }
+
+  // HubSpot sync
+  try {
+    const { syncContractToHubSpot } = await import("@/lib/hubspot");
+    await syncContractToHubSpot(updated);
+  } catch (e) {
+    console.error("HubSpot sync failed:", e);
   }
 
   return NextResponse.json({
     success: true,
     contractId: updated.id,
-    pdfUrl: updated.pdfUrl,
+    pdfUrl,
   });
 }

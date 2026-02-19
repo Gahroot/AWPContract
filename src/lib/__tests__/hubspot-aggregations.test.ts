@@ -270,7 +270,7 @@ describe("buildDealProperties", () => {
 
     // Series
     expect(props.awp_patriot_qty).toBe("4"); // 3 windows + 1 door
-    expect(props.high_performance_qty).toBe("2");
+    expect(props.awp_high_performance_qty).toBe("2");
 
     // Frame
     expect(props.nail_fin_qty).toBe("5"); // 3 + 2

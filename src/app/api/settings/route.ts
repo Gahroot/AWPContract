@@ -41,15 +41,16 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.json();
 
-  for (const key of ADMIN_SETTING_KEYS) {
-    if (body[key] !== undefined) {
-      await db.setting.upsert({
+  const upserts = ADMIN_SETTING_KEYS
+    .filter((key) => body[key] !== undefined)
+    .map((key) =>
+      db.setting.upsert({
         where: { key },
         update: { value: body[key] },
         create: { key, value: body[key] },
-      });
-    }
-  }
+      })
+    );
+  await db.$transaction(upserts);
 
   return NextResponse.json({ success: true });
 }

@@ -63,22 +63,22 @@ export async function calculateCommission(
 
       // Graduated calculation: each bracket taxed at its own rate
       let totalCommission = 0;
-      let remaining = contractTotal;
+      let consumed = 0;
 
       for (const tier of tiers) {
-        if (remaining <= 0) break;
+        if (consumed >= contractTotal) break;
 
         const bracketMin = tier.minAmount;
         const bracketMax = tier.maxAmount;
 
-        // Amount in this bracket
-        const bracketSize =
-          bracketMax != null ? bracketMax - bracketMin : remaining;
-        const taxable = Math.min(remaining, bracketSize);
+        // Amount of contractTotal that falls within this bracket
+        const applicableAmount =
+          Math.min(contractTotal, bracketMax ?? Infinity) -
+          Math.max(consumed, bracketMin);
 
-        if (taxable > 0) {
-          totalCommission += taxable * tier.rate;
-          remaining -= taxable;
+        if (applicableAmount > 0) {
+          totalCommission += applicableAmount * tier.rate;
+          consumed = Math.min(contractTotal, bracketMax ?? Infinity);
         }
       }
 

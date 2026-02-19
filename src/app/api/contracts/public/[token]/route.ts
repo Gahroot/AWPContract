@@ -20,7 +20,16 @@ export async function GET(
   }
 
   // Strip sensitive fields
-  const { userId: _userId, ...publicData } = contract;
+  const {
+    userId: _userId,
+    accessToken: _token,
+    hubspotDealId: _hd,
+    hubspotContactId: _hc,
+    hubspotSyncStatus: _hs,
+    hubspotLastSynced: _hls,
+    hubspotSyncError: _hse,
+    ...publicData
+  } = contract;
 
   return NextResponse.json(publicData);
 }

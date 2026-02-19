@@ -25,6 +25,7 @@ export async function GET(
   const addendums = await db.addendum.findMany({
     where: { contractId: id },
     orderBy: { createdAt: "desc" },
+    take: 50,
   });
 
   return NextResponse.json(addendums);

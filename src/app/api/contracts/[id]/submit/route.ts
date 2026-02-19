@@ -94,7 +94,9 @@ export async function POST(
   const balanceDue = calculateBalanceDue(contractTotal, downPayment);
 
   // Delete existing line items and recreate atomically
-  const contract = await db.$transaction(async (tx) => {
+  let contract;
+  try {
+    contract = await db.$transaction(async (tx) => {
     await tx.lineItem.deleteMany({ where: { contractId: id } });
 
     return tx.contract.update({
@@ -160,6 +162,10 @@ export async function POST(
       include: { lineItems: true },
     });
   });
+  } catch (e) {
+    console.error("Transaction failed:", e);
+    return NextResponse.json({ error: "Failed to save contract" }, { status: 500 });
+  }
 
   // Generate PDF
   try {

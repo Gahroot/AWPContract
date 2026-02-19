@@ -3,14 +3,7 @@
 
 // ─── Markets ─────────────────────────────────────────────────────────────
 
-export const MARKETS = {
-  SLC: { name: "Salt Lake City", glassTypes: ["LoE-366", "LoE-i89"] },
-  OREM: { name: "Orem", glassTypes: ["LoE-366", "LoE-i89"] },
-  PHOENIX: { name: "Phoenix", glassTypes: ["Quad LoE-452+"] },
-  VANCOUVER: { name: "Vancouver", glassTypes: ["Low-E", "Low-E+"] },
-} as const;
-
-export type Market = keyof typeof MARKETS;
+export type Market = "SLC" | "OREM" | "PHOENIX" | "VANCOUVER";
 
 // ─── Product Catalog ───────────────────────────────────────────────────────
 
@@ -39,19 +32,19 @@ export const OPERATIONS = {
   "STD": { description: "Standard door operation" },
 } as const;
 
-export type Operation = keyof typeof OPERATIONS;
+type Operation = keyof typeof OPERATIONS;
 
 // Grid types
-export const GRID_TYPES = {
+const GRID_TYPES = {
   "STD GRID": { description: "Standard Grid", pricingModifier: 0 },
   "CNT GRID": { description: "Contoured Grid", pricingModifier: 0.01 },
   "KE Grid": { description: "KE Grid (Specialty/Shape)", pricingModifier: 0.02 },
 } as const;
 
-export type GridType = keyof typeof GRID_TYPES;
+type GridType = keyof typeof GRID_TYPES;
 
 // Glass types
-export const GLASS_TYPES = {
+const GLASS_TYPES = {
   "LoE-366": { description: "LoE-366 Glass", markets: ["SLC", "OREM"] },
   "LoE-i89": { description: "LoE-i89 Glass", markets: ["SLC", "OREM"] },
   "Quad LoE-452+": { description: "Quad LoE-452+ Glass", markets: ["PHOENIX"] },
@@ -60,10 +53,10 @@ export const GLASS_TYPES = {
   "STD": { description: "Standard Glass", markets: ["SLC", "OREM", "PHOENIX", "VANCOUVER"] },
 } as const;
 
-export type GlassType = keyof typeof GLASS_TYPES;
+type GlassType = keyof typeof GLASS_TYPES;
 
 // Color options by market
-export const COLORS_BY_MARKET = {
+const COLORS_BY_MARKET = {
   SLC: {
     exterior: ["White", "Light Tan", "Dark Tan", "Black", "Bronze"],
     interior: ["White", "Light Tan", "Dark Tan"],
@@ -79,37 +72,6 @@ export const COLORS_BY_MARKET = {
   VANCOUVER: {
     exterior: ["White", "Light Tan", "Dark Tan", "Eclipse (Black on Black)"],
     interior: ["White", "Light Tan", "Dark Tan"],
-  },
-} as const;
-
-// Add-on options
-export const ADD_ONS = {
-  glass: {
-    OBS: { label: "Obscured Glass", pricingModifier: 0.01 },
-    TEMP: { label: "Tempered Glass", pricingModifier: 0.01 },
-  },
-  grids: {
-    "STD GRID": { label: "Standard Grid", pricingModifier: 0 },
-    "CNT GRID": { label: "Contoured Grid", pricingModifier: 0.01 },
-    "KE Grid": { label: "KE Grid", pricingModifier: 0.02 },
-  },
-  colors: {
-    LT: { label: "Light Tan", pricingModifier: 0 },
-    DT: { label: "Dark Tan", pricingModifier: 0 },
-    "Black": { label: "Black", pricingModifier: 0 },
-    "Bronze": { label: "Bronze", pricingModifier: 0 },
-    "Eclipse": { label: "Eclipse (Black on Black)", pricingModifier: 0 },
-    "Color Match": { label: "Color Match", pricingModifier: 0 },
-  },
-  doors: {
-    "Dog Door Add On": { label: "Dog Door Add On", pricingModifier: 0.05 },
-  },
-  phoenix: {
-    "Lead Test Fees": { label: "Lead Test Fees", pricingModifier: 0 },
-    "Lead Safe Installation": { label: "Lead Safe Installation", pricingModifier: 0 },
-    "Window Wraps": { label: "Window Wraps", pricingModifier: 0.01 },
-    "Door Wraps": { label: "Door Wraps", pricingModifier: 0.01 },
-    "Storm Shutter Removal": { label: "Storm Shutter Removal", pricingModifier: 0.02 },
   },
 } as const;
 

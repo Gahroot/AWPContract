@@ -352,7 +352,6 @@ export function buildDealProperties(contract: ContractData): Record<string, stri
     "wraps__": String(agg.wrapQty),
     // Series quantities
     awp_patriot_qty: String(agg.patriotQty),
-    high_performance_qty: String(agg.highPerformanceQty),
     awp_high_performance_qty: String(agg.highPerformanceQty),
     ww_autograph_qty: String(agg.autographQty),
     ww_signature_qty: String(agg.signatureQty),
@@ -478,7 +477,7 @@ export async function addLineItems(
   contract: ContractData,
   dealId: string
 ): Promise<void> {
-  for (const item of contract.lineItems) {
+  const inputs = contract.lineItems.map((item) => {
     const details = [
       `${item.width}"W x ${item.height}"H`,
       item.color,
@@ -494,7 +493,7 @@ export async function addLineItems(
       .filter(Boolean)
       .join(" | ");
 
-    await client.crm.lineItems.basicApi.create({
+    return {
       properties: {
         name: `${item.location || "Item"} - ${item.type}`,
         quantity: String(item.qty),
@@ -513,7 +512,12 @@ export async function addLineItems(
           ],
         },
       ],
-    });
+    };
+  });
+
+  // Batch in chunks of 100 (HubSpot API limit)
+  for (let i = 0; i < inputs.length; i += 100) {
+    await client.crm.lineItems.batchApi.create({ inputs: inputs.slice(i, i + 100) });
   }
 }
 
@@ -770,13 +774,16 @@ export async function syncContractToHubSpot(
 ): Promise<{ contactId: string; dealId: string } | null> {
   const { db } = await import("@/lib/db");
 
-  // Check sync guard
-  const syncEnabled = await isHubSpotSyncEnabled();
+  // Fetch both settings in a single query
+  const settings = await db.setting.findMany({
+    where: { key: { in: ["hubspot_sync_enabled", "hubspot_api_key"] } },
+  });
+  const syncEnabled = settings.find((s) => s.key === "hubspot_sync_enabled")?.value === "true";
+  const apiKey = settings.find((s) => s.key === "hubspot_api_key")?.value;
 
-  const setting = await db.setting.findUnique({ where: { key: "hubspot_api_key" } });
-  if (!setting?.value) return null;
+  if (!syncEnabled || !apiKey) return null;
 
-  // Fetch commission amount
+  // Fetch commission amount only when sync will execute
   const commission = await db.commissionRecord.findFirst({
     where: { contractId: contract.id },
     orderBy: { createdAt: "desc" },
@@ -785,13 +792,7 @@ export async function syncContractToHubSpot(
 
   const contractData = toContractData(contract, commission?.amount ?? null);
 
-  if (!syncEnabled) {
-    const properties = buildDealProperties(contractData);
-    console.log("[HubSpot DRY RUN] Would sync deal with properties:", JSON.stringify(properties, null, 2));
-    return null;
-  }
-
-  const result = await syncContract(contractData, setting.value);
+  const result = await syncContract(contractData, apiKey);
   await db.contract.update({
     where: { id: contract.id },
     data: { hubspotContactId: result.contactId, hubspotDealId: result.dealId },

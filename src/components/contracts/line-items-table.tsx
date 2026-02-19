@@ -50,7 +50,6 @@ import {
   type ProductDef,
 } from "@/lib/constants";
 import { calculateLineItem, formatCurrency } from "@/lib/pricing";
-import { type LineItemFormValues } from "@/lib/validations";
 
 const BOOLEAN_FIELDS = [
   "temperedGlass",
@@ -86,7 +85,7 @@ const defaultLineItem = {
 };
 
 export function LineItemsTable() {
-  const { control, setValue } = useFormContext();
+  const { control } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
     name: "lineItems",
@@ -94,38 +93,6 @@ export function LineItemsTable() {
 
   // Default market for product catalog
   const market: Market = "SLC";
-
-  // Watch all line items for price recalculation
-  const lineItems = useWatch({ control, name: "lineItems" });
-
-  // Recalculate prices when any line item changes
-  useEffect(() => {
-    if (!lineItems) return;
-    lineItems.forEach((item: LineItemFormValues, index: number) => {
-      const price = calculateLineItem({
-        width: Number(item.width) || 0,
-        height: Number(item.height) || 0,
-        qty: Number(item.qty) || 1,
-        color: item.color || "White",
-        series: item.series || "",
-        frame: item.frame || "Nail Fin",
-        function: item.function || "",
-        productCode: item.productCode,
-        operation: item.operation,
-        gridType: item.gridType,
-        glassType: item.glassType,
-        temperedGlass: !!item.temperedGlass,
-        obscuredGlass: !!item.obscuredGlass,
-        customShape: !!item.customShape,
-        wrap: !!item.wrap,
-        coated: !!item.coated,
-        awpShutterRnr: !!item.awpShutterRnr,
-      });
-      if (item.price !== price) {
-        setValue(`lineItems.${index}.price`, price, { shouldDirty: false });
-      }
-    });
-  }, [lineItems, setValue]);
 
   const handleAddItem = () => {
     append({ ...defaultLineItem, sortOrder: fields.length });
@@ -203,6 +170,34 @@ function LineItemRow({
   const price = useWatch({ control, name: `lineItems.${index}.price` });
   const productCode = useWatch({ control, name: `lineItems.${index}.productCode` });
   const itemType = useWatch({ control, name: `lineItems.${index}.type` }) || "Window";
+
+  // Recalculate price when any pricing field changes
+  const rowData = useWatch({ control, name: `lineItems.${index}` });
+  useEffect(() => {
+    if (!rowData) return;
+    const newPrice = calculateLineItem({
+      width: Number(rowData.width) || 0,
+      height: Number(rowData.height) || 0,
+      qty: Number(rowData.qty) || 1,
+      color: rowData.color || "White",
+      series: rowData.series || "",
+      frame: rowData.frame || "Nail Fin",
+      function: rowData.function || "",
+      productCode: rowData.productCode,
+      operation: rowData.operation,
+      gridType: rowData.gridType,
+      glassType: rowData.glassType,
+      temperedGlass: !!rowData.temperedGlass,
+      obscuredGlass: !!rowData.obscuredGlass,
+      customShape: !!rowData.customShape,
+      wrap: !!rowData.wrap,
+      coated: !!rowData.coated,
+      awpShutterRnr: !!rowData.awpShutterRnr,
+    });
+    if (rowData.price !== newPrice) {
+      setValue(`lineItems.${index}.price`, newPrice, { shouldDirty: false });
+    }
+  }, [rowData, index, setValue]);
 
   // Local state for the display style (not stored in form, derived from cascade)
   const [selectedStyle, setSelectedStyle] = useState("");

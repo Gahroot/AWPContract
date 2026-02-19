@@ -403,7 +403,7 @@ export async function generateAndSavePdf(
 }
 
 // Render to buffer
-export async function generateSalesContractPdf(
+async function generateSalesContractPdf(
   contract: PdfContract
 ): Promise<Uint8Array> {
   const stream = await ReactPDF.renderToStream(

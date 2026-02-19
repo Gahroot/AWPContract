@@ -322,6 +322,7 @@ describe("salesContractSubmitSchema", () => {
     customerSignature: "data:image/png;base64,signaturedata",
     customerSignatureDate: "2026-01-15",
     contractorSignature: "data:image/png;base64,contractorsig",
+    customerAcceptedTerms: true,
     lineItems: [{ qty: 2, width: 36, height: 48 }],
   };
 
