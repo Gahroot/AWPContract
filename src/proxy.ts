@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Simple middleware without importing auth (avoids crypto/node module issues in edge)
-export function middleware(req: NextRequest) {
+// Simple proxy without importing auth (avoids crypto/node module issues in edge)
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Public routes that don't require auth

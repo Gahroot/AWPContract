@@ -91,7 +91,7 @@ model Contract {
   id               String         @id @default(cuid())
   contractNumber   String         @unique @default(cuid())
   status           ContractStatus @default(DRAFT)
-  accessToken      String         @unique @default(cuid())
+  accessToken      String         @unique @default(cuid(2))
 
   // Customer Info
   customerName     String?
