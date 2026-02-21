@@ -177,3 +177,24 @@ export const commissionConfigSchema = z.object({
 });
 
 export type CommissionConfigFormValues = z.infer<typeof commissionConfigSchema>;
+
+// Invite schemas
+export const createInviteSchema = z.object({
+  email: z.string().email("Valid email is required"),
+  role: z.enum(["ADMIN", "SALESMAN"]).default("SALESMAN"),
+});
+
+export type CreateInviteValues = z.infer<typeof createInviteSchema>;
+
+export const acceptInviteSchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type AcceptInviteValues = z.infer<typeof acceptInviteSchema>;

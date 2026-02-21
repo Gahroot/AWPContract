@@ -12,6 +12,12 @@ enum Role {
   SALESMAN
 }
 
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
 enum ContractStatus {
   DRAFT
   PENDING_SIGNATURE
@@ -44,6 +50,8 @@ model User {
   contracts         Contract[]
   commissionRate    CommissionRate?
   commissionRecords CommissionRecord[]
+  invitesSent       Invite[]  @relation("InvitedByUser")
+  inviteAccepted    Invite[]  @relation("AcceptedInvite")
 }
 
 model Account {
@@ -373,4 +381,26 @@ model CommissionRecord {
   @@index([contractId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ─── Invite Model ───────────────────────────────────────────
+
+model Invite {
+  id           String       @id @default(cuid())
+  token        String       @unique @default(cuid(2))
+  email        String
+  role         Role         @default(SALESMAN)
+  status       InviteStatus @default(PENDING)
+  market       String       @default("SLC")
+  invitedById  String
+  invitedBy    User         @relation("InvitedByUser", fields: [invitedById], references: [id])
+  acceptedById String?
+  acceptedBy   User?        @relation("AcceptedInvite", fields: [acceptedById], references: [id])
+  expiresAt    DateTime
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([token])
+  @@index([email])
+  @@index([status])
 }

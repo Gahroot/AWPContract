@@ -12,6 +12,8 @@ export function proxy(req: NextRequest) {
     "/contracts/view",
     "/contracts/sign",
     "/api/contracts/public",
+    "/invite",
+    "/api/invites/accept",
   ];
 
   const isPublicRoute = publicRoutes.some((route) =>
