@@ -104,8 +104,8 @@ export async function POST(
 
     // Recalculate commission after price change
     try {
-      const { upsertCommissionForContract } = await import("@/lib/commission");
-      await upsertCommissionForContract(
+      const { upsertCommissionsForContract } = await import("@/lib/commission");
+      await upsertCommissionsForContract(
         id,
         `Recalculated due to Change Order ${changeOrderNumber}`
       );

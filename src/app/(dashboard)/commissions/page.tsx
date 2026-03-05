@@ -19,7 +19,7 @@ import {
   DollarSign,
   FileText,
   Percent,
-  Settings,
+  Users,
   Download,
   ChevronLeft,
   ChevronRight,
@@ -38,16 +38,23 @@ interface ByUser {
   contractCount: number;
 }
 
-interface CommissionRecord {
-  id: string;
-  contractTotal: number;
-  modelType: string;
-  rate: number;
-  amount: number;
-  createdAt: string;
-  contract: { contractNumber: string; customerName: string | null };
-  user: { id: string; name: string | null; email: string };
+interface ByRole {
+  commissionType: string;
+  totalCommission: number;
+  count: number;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CommissionRecord = any;
+
+const ROLE_LABELS: Record<string, string> = {
+  SALES_REP: "Sales Rep",
+  SETTER: "Setter",
+  SETTER_MANAGER: "Setter Mgr",
+  TERRITORY_OWNER: "Territory",
+  VP: "VP",
+  NSM: "NSM",
+};
 
 function CommissionsContent() {
   const searchParams = useSearchParams();
@@ -61,15 +68,15 @@ function CommissionsContent() {
     averageRate: 0,
   });
   const [byUser, setByUser] = useState<ByUser[]>([]);
+  const [byRole, setByRole] = useState<ByRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<{ id: string; name: string | null; email: string }[]>([]);
-  const [activeModel, setActiveModel] = useState("FLAT_PERCENT");
 
-  // Filter state from URL
   const page = parseInt(searchParams.get("page") ?? "1");
   const startDate = searchParams.get("startDate") ?? "";
   const endDate = searchParams.get("endDate") ?? "";
   const userId = searchParams.get("userId") ?? "";
+  const commissionType = searchParams.get("commissionType") ?? "";
   const limit = 20;
 
   const fetchData = useCallback(async () => {
@@ -80,31 +87,28 @@ function CommissionsContent() {
     if (startDate) params.set("startDate", startDate);
     if (endDate) params.set("endDate", endDate);
     if (userId) params.set("userId", userId);
+    if (commissionType) params.set("commissionType", commissionType);
 
     try {
-      const [commRes, configRes] = await Promise.all([
+      const [commRes, usersRes] = await Promise.all([
         fetch(`/api/commissions?${params}`),
-        fetch("/api/commissions/config"),
+        fetch("/api/users/salespeople"),
       ]);
       const commData = await commRes.json();
-      const configData = await configRes.json();
 
       setRecords(commData.records ?? []);
       setTotal(commData.total ?? 0);
       setSummary(commData.summary ?? { totalCommission: 0, totalContracts: 0, averageRate: 0 });
       setByUser(commData.byUser ?? []);
-      setActiveModel(configData.config?.modelType ?? "FLAT_PERCENT");
+      setByRole(commData.byRole ?? []);
 
-      // Get unique users from salesperson rates for filter dropdown
-      const rateUsers = (configData.salespersonRates ?? []).map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (r: any) => r.user ?? { id: r.userId, name: null, email: "" }
-      );
-      setUsers(rateUsers);
+      if (usersRes.ok) {
+        setUsers(await usersRes.json());
+      }
     } finally {
       setLoading(false);
     }
-  }, [page, startDate, endDate, userId]);
+  }, [page, startDate, endDate, userId, commissionType]);
 
   useEffect(() => {
     fetchData();
@@ -119,7 +123,6 @@ function CommissionsContent() {
         params.delete(key);
       }
     }
-    // Reset to page 1 on filter change
     if (!updates.page) params.set("page", "1");
     router.push(`/commissions?${params.toString()}`);
   }
@@ -133,12 +136,6 @@ function CommissionsContent() {
   }
 
   const totalPages = Math.ceil(total / limit);
-  const modelLabel =
-    activeModel === "FLAT_PERCENT"
-      ? "Flat %"
-      : activeModel === "PER_SALESPERSON"
-        ? "Per-Salesperson"
-        : "Tiered";
 
   return (
     <div className="space-y-6">
@@ -158,7 +155,7 @@ function CommissionsContent() {
           icon={DollarSign}
         />
         <CommissionSummaryCard
-          title="Total Contracts"
+          title="Total Records"
           value={String(summary.totalContracts)}
           icon={FileText}
         />
@@ -168,13 +165,37 @@ function CommissionsContent() {
           icon={Percent}
         />
         <CommissionSummaryCard
-          title="Active Model"
-          value={modelLabel}
-          icon={Settings}
+          title="Roles Active"
+          value={String(byRole.length)}
+          description={byRole.map(r => ROLE_LABELS[r.commissionType] ?? r.commissionType).join(", ")}
+          icon={Users}
         />
       </div>
 
-      {/* Per-salesperson breakdown */}
+      {/* By-role breakdown */}
+      {byRole.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+          {byRole.map((r) => (
+            <Card key={r.commissionType}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {ROLE_LABELS[r.commissionType] ?? r.commissionType}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-bold">
+                  ${r.totalCommission.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {r.count} record{r.count !== 1 ? "s" : ""}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Per-user breakdown */}
       {byUser.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {byUser.map((u) => (
@@ -187,7 +208,7 @@ function CommissionsContent() {
                   ${u.totalCommission.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {u.contractCount} contract{u.contractCount !== 1 ? "s" : ""}
+                  {u.contractCount} record{u.contractCount !== 1 ? "s" : ""}
                 </p>
               </CardContent>
             </Card>
@@ -217,7 +238,7 @@ function CommissionsContent() {
         </div>
         {users.length > 0 && (
           <div className="space-y-1">
-            <Label className="text-xs">Salesperson</Label>
+            <Label className="text-xs">Recipient</Label>
             <Select
               value={userId || "all"}
               onValueChange={(v) =>
@@ -228,7 +249,7 @@ function CommissionsContent() {
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Salespeople</SelectItem>
+                <SelectItem value="all">All Recipients</SelectItem>
                 {users.map((u) => (
                   <SelectItem key={u.id} value={u.id}>
                     {u.name || u.email}
@@ -238,12 +259,33 @@ function CommissionsContent() {
             </Select>
           </div>
         )}
-        {(startDate || endDate || userId) && (
+        <div className="space-y-1">
+          <Label className="text-xs">Role</Label>
+          <Select
+            value={commissionType || "all"}
+            onValueChange={(v) =>
+              updateFilters({ commissionType: v === "all" ? "" : v })
+            }
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              {Object.entries(ROLE_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {(startDate || endDate || userId || commissionType) && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() =>
-              updateFilters({ startDate: "", endDate: "", userId: "" })
+              updateFilters({ startDate: "", endDate: "", userId: "", commissionType: "" })
             }
           >
             Clear Filters

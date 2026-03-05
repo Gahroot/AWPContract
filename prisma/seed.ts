@@ -87,10 +87,48 @@ async function main() {
     },
   });
 
-  // ─── Commission Config ──────────────────────────────────────
-  await prisma.commissionConfig.deleteMany();
-  await prisma.commissionConfig.create({
-    data: { modelType: "FLAT_PERCENT", flatRate: 8.0 },
+  // ─── Commission Settings ────────────────────────────────────
+  await prisma.commissionSettings.deleteMany();
+  await prisma.commissionSettings.create({
+    data: {
+      salesRepRate: 0.10,
+      salesRepRateBelowFair: 0.05,
+      salesRepFloor: 0.85,
+      salesRepCeiling: 1.15,
+      setterRate: 0.03,
+      setterFloor: 0.85,
+      setterManagerRate: 0.02,
+      setterManagerRateBelowFair: 0.01,
+      territoryOwnerRateTier1: 0.01,
+      territoryOwnerRateTier2: 0.015,
+      territoryOwnerRateTier3: 0.02,
+      territoryOwnerTier2Threshold: 500000,
+      territoryOwnerTier3Threshold: 1000000,
+      vpRate: 0.01,
+      vpRateBelowFair: 0.005,
+      nsmRate: 0.005,
+      nsmRateBelowFair: 0.0025,
+      traditionalSalesRepRate: 0.12,
+      traditionalSalesRepRateBelowFair: 0.07,
+      traditionalFloorRate: 0.85,
+      traditionalPriceCeiling: 1.15,
+      traditionalNsmOverrideRate: 0.005,
+      traditionalNsmOverrideRateBelowFair: 0.0025,
+    },
+  });
+
+  // Set management role flags on test users
+  await prisma.user.update({
+    where: { email: "admin@awp.com" },
+    data: { isVP: true, isNSM: true, territory: "SLC" },
+  });
+  await prisma.user.update({
+    where: { email: "sales@awp.com" },
+    data: { isSetterManager: true, territory: "SLC" },
+  });
+  await prisma.user.update({
+    where: { email: "jake.morrison@awp.com" },
+    data: { isTerritoryOwner: true, territory: "SLC" },
   });
 
   // ─── Demo Contracts ─────────────────────────────────────────
@@ -218,6 +256,8 @@ async function main() {
       customerSignatureDate: new Date("2026-01-16"),
       customerAcceptedTerms: true,
       userId: salesUser!.id,
+      salesRepId: salesUser!.id,
+      setterId: jake.id,
       createdAt: new Date("2026-01-10"),
       updatedAt: new Date("2026-01-16"),
       lineItems: {
@@ -469,6 +509,7 @@ async function main() {
       customerSignatureDate: new Date("2025-12-10"),
       customerAcceptedTerms: true,
       userId: lisa.id,
+      salesRepId: lisa.id,
       createdAt: new Date("2025-12-08"),
       updatedAt: new Date("2025-12-20"),
       lineItems: {
@@ -693,6 +734,8 @@ async function main() {
       customerSignatureDate: new Date("2025-11-21"),
       customerAcceptedTerms: true,
       userId: jake.id,
+      salesRepId: jake.id,
+      setterId: salesUser!.id,
       createdAt: new Date("2025-11-15"),
       updatedAt: new Date("2026-01-10"),
       lineItems: {

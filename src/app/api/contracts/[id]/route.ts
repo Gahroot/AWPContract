@@ -20,6 +20,8 @@ export async function GET(
       lineItems: { orderBy: { sortOrder: "asc" } },
       addendums: { orderBy: { createdAt: "desc" } },
       changeOrders: { orderBy: { createdAt: "desc" } },
+      salesRep: { select: { id: true, name: true, email: true } },
+      setter: { select: { id: true, name: true, email: true } },
     },
   });
 
@@ -150,6 +152,8 @@ export async function PATCH(
           woodApplicationQty: contractData.woodApplicationQty !== undefined
             ? parseInt(contractData.woodApplicationQty) || 0
             : undefined,
+          salesRepId: contractData.salesRepId ?? undefined,
+          setterId: contractData.setterId !== undefined ? (contractData.setterId || null) : undefined,
           measurementNotes: contractData.measurementNotes ?? undefined,
           contractorSignature: contractData.contractorSignature ?? undefined,
           contractorSignatureDate: contractData.contractorSignatureDate

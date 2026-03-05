@@ -2,17 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -24,24 +13,36 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Loader2, RefreshCw } from "lucide-react";
-import {
-  TierEditor,
-  type TierRow,
-} from "@/components/commissions/tier-editor";
-import {
-  SalespersonRateEditor,
-  type SalespersonRate,
-} from "@/components/commissions/salesperson-rate-editor";
+import { CommissionSettingsSection } from "@/components/commissions/commission-settings-section";
 
-type ModelType = "FLAT_PERCENT" | "PER_SALESPERSON" | "TIERED";
+const DEFAULT_SETTINGS: Record<string, number> = {
+  salesRepRate: 0.10,
+  salesRepRateBelowFair: 0.05,
+  salesRepFloor: 0.85,
+  salesRepCeiling: 1.15,
+  setterRate: 0.03,
+  setterFloor: 0.85,
+  setterManagerRate: 0.02,
+  setterManagerRateBelowFair: 0.01,
+  territoryOwnerRateTier1: 0.01,
+  territoryOwnerRateTier2: 0.015,
+  territoryOwnerRateTier3: 0.02,
+  territoryOwnerTier2Threshold: 500000,
+  territoryOwnerTier3Threshold: 1000000,
+  vpRate: 0.01,
+  vpRateBelowFair: 0.005,
+  nsmRate: 0.005,
+  nsmRateBelowFair: 0.0025,
+  traditionalSalesRepRate: 0.12,
+  traditionalSalesRepRateBelowFair: 0.07,
+  traditionalFloorRate: 0.85,
+  traditionalPriceCeiling: 1.15,
+  traditionalNsmOverrideRate: 0.005,
+  traditionalNsmOverrideRateBelowFair: 0.0025,
+};
 
 export default function CommissionSettingsPage() {
-  const [modelType, setModelType] = useState<ModelType>("FLAT_PERCENT");
-  const [flatRate, setFlatRate] = useState(10);
-  const [tiers, setTiers] = useState<TierRow[]>([]);
-  const [salespersonRates, setSalespersonRates] = useState<SalespersonRate[]>(
-    []
-  );
+  const [values, setValues] = useState<Record<string, number>>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
@@ -50,40 +51,18 @@ export default function CommissionSettingsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [configRes, usersRes] = await Promise.all([
-          fetch("/api/commissions/config"),
-          fetch("/api/commissions/config"), // same endpoint returns rates
-        ]);
-        const configData = await configRes.json();
-        // usersRes is same data, we just need the salesperson rates
-        const _usersData = await usersRes.json();
-
-        if (configData.config) {
-          setModelType(configData.config.modelType ?? "FLAT_PERCENT");
-          setFlatRate((configData.config.flatRate ?? 0.1) * 100);
+        const res = await fetch("/api/commissions/config");
+        const data = await res.json();
+        if (data.settings) {
+          const s = data.settings;
+          const merged = { ...DEFAULT_SETTINGS };
+          for (const key of Object.keys(merged)) {
+            if (s[key] !== undefined && s[key] !== null) {
+              merged[key] = s[key];
+            }
+          }
+          setValues(merged);
         }
-        if (configData.tiers) {
-          setTiers(configData.tiers);
-        }
-
-        // Build salesperson rates with user info
-        // Fetch all salesperson users
-        const allUsersRes = await fetch("/api/commissions/config");
-        const allUsersData = await allUsersRes.json();
-        const existingRates = allUsersData.salespersonRates ?? [];
-
-        // We need list of all salespeople - get from rates endpoint user data
-        // For now, use what we have from the config endpoint
-        const ratesList: SalespersonRate[] = existingRates.map(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (r: any) => ({
-            userId: r.userId ?? r.user?.id,
-            name: r.user?.name ?? "",
-            email: r.user?.email ?? "",
-            rate: r.rate ?? 0,
-          })
-        );
-        setSalespersonRates(ratesList);
       } finally {
         setLoading(false);
       }
@@ -91,32 +70,17 @@ export default function CommissionSettingsPage() {
     load();
   }, []);
 
+  function updateValue(key: string, value: number) {
+    setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
-      const body: Record<string, unknown> = {
-        modelType,
-        flatRate: flatRate / 100,
-      };
-      if (modelType === "TIERED") {
-        body.tiers = tiers.map((t, i) => ({
-          minAmount: t.minAmount,
-          maxAmount: t.maxAmount,
-          rate: t.rate,
-          sortOrder: i,
-        }));
-      }
-      if (modelType === "PER_SALESPERSON") {
-        body.salespersonRates = salespersonRates.map((sr) => ({
-          userId: sr.userId,
-          rate: sr.rate,
-        }));
-      }
-
       const res = await fetch("/api/commissions/config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(values),
       });
       if (res.ok) {
         toast.success("Commission settings saved");
@@ -152,85 +116,101 @@ export default function CommissionSettingsPage() {
   if (loading) return null;
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4 max-w-2xl">
       <h1 className="text-2xl font-bold">Commission Settings</h1>
+      <p className="text-sm text-muted-foreground">
+        Configure commission rates for all roles. Rates are applied simultaneously
+        when a contract is completed.
+      </p>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Commission Model</CardTitle>
-          <CardDescription>
-            Choose how commissions are calculated for completed contracts.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <RadioGroup
-            value={modelType}
-            onValueChange={(v) => setModelType(v as ModelType)}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="FLAT_PERCENT" id="flat" />
-              <Label htmlFor="flat">Flat Percentage</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="PER_SALESPERSON" id="per-sp" />
-              <Label htmlFor="per-sp">Per-Salesperson Rates</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="TIERED" id="tiered" />
-              <Label htmlFor="tiered">Tiered / Graduated</Label>
-            </div>
-          </RadioGroup>
+      <CommissionSettingsSection
+        title="Sales Rep"
+        description="Commission for the closer on setter-set appointments."
+        defaultOpen
+        fields={[
+          { key: "salesRepRate", label: "Rate (at/above fair price)", type: "percent" },
+          { key: "salesRepRateBelowFair", label: "Rate (below fair price)", type: "percent" },
+          { key: "salesRepFloor", label: "Floor (% of fair price)", type: "multiplier", step: 1 },
+          { key: "salesRepCeiling", label: "Ceiling (% of fair price)", type: "multiplier", step: 1 },
+        ]}
+        values={values}
+        onChange={updateValue}
+      />
 
-          <Separator />
+      <CommissionSettingsSection
+        title="Setter"
+        description="Commission for the appointment setter (setter-set only)."
+        fields={[
+          { key: "setterRate", label: "Rate", type: "percent" },
+          { key: "setterFloor", label: "Floor (% of fair price)", type: "multiplier", step: 1 },
+        ]}
+        values={values}
+        onChange={updateValue}
+      />
 
-          {/* Flat rate input (shown for FLAT and as fallback for PER_SALESPERSON) */}
-          {(modelType === "FLAT_PERCENT" ||
-            modelType === "PER_SALESPERSON") && (
-            <div className="space-y-2">
-              <Label>
-                {modelType === "PER_SALESPERSON"
-                  ? "Fallback Rate (%)"
-                  : "Commission Rate (%)"}
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                step={0.5}
-                value={flatRate}
-                onChange={(e) => setFlatRate(parseFloat(e.target.value) || 0)}
-                className="max-w-[200px]"
-              />
-              <p className="text-xs text-muted-foreground">
-                {modelType === "PER_SALESPERSON"
-                  ? "Used when a salesperson has no individual rate set."
-                  : "Applied to all completed contracts."}
-              </p>
-            </div>
-          )}
+      <CommissionSettingsSection
+        title="Setter Manager"
+        description="Override for setter managers on all contracts."
+        fields={[
+          { key: "setterManagerRate", label: "Rate (at/above fair price)", type: "percent" },
+          { key: "setterManagerRateBelowFair", label: "Rate (below fair price)", type: "percent" },
+        ]}
+        values={values}
+        onChange={updateValue}
+      />
 
-          {/* Per-salesperson rates */}
-          {modelType === "PER_SALESPERSON" && (
-            <div className="space-y-2">
-              <Label>Salesperson Rates</Label>
-              <SalespersonRateEditor
-                rates={salespersonRates}
-                onChange={setSalespersonRates}
-              />
-            </div>
-          )}
+      <CommissionSettingsSection
+        title="Territory Owner"
+        description="Tiered override based on cumulative territory revenue (current year)."
+        fields={[
+          { key: "territoryOwnerRateTier1", label: "Tier 1 Rate", type: "percent" },
+          { key: "territoryOwnerTier2Threshold", label: "Tier 2 Threshold", type: "dollar" },
+          { key: "territoryOwnerRateTier2", label: "Tier 2 Rate", type: "percent" },
+          { key: "territoryOwnerTier3Threshold", label: "Tier 3 Threshold", type: "dollar" },
+          { key: "territoryOwnerRateTier3", label: "Tier 3 Rate", type: "percent" },
+        ]}
+        values={values}
+        onChange={updateValue}
+      />
 
-          {/* Tiered editor */}
-          {modelType === "TIERED" && (
-            <div className="space-y-2">
-              <Label>Commission Tiers</Label>
-              <TierEditor tiers={tiers} onChange={setTiers} />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <CommissionSettingsSection
+        title="VP"
+        description="Override for VPs on all contracts."
+        fields={[
+          { key: "vpRate", label: "Rate (at/above fair price)", type: "percent" },
+          { key: "vpRateBelowFair", label: "Rate (below fair price)", type: "percent" },
+        ]}
+        values={values}
+        onChange={updateValue}
+      />
 
-      <div className="flex gap-3">
+      <CommissionSettingsSection
+        title="NSM (National Sales Manager)"
+        description="Override for NSM on setter-set contracts."
+        fields={[
+          { key: "nsmRate", label: "Rate (at/above fair price)", type: "percent" },
+          { key: "nsmRateBelowFair", label: "Rate (below fair price)", type: "percent" },
+        ]}
+        values={values}
+        onChange={updateValue}
+      />
+
+      <CommissionSettingsSection
+        title="Traditional / Self-Gen Sales"
+        description="Rates when the sales rep is also the setter (no separate setter)."
+        fields={[
+          { key: "traditionalSalesRepRate", label: "Sales Rep Rate (at/above fair)", type: "percent" },
+          { key: "traditionalSalesRepRateBelowFair", label: "Sales Rep Rate (below fair)", type: "percent" },
+          { key: "traditionalFloorRate", label: "Floor (% of fair price)", type: "multiplier", step: 1 },
+          { key: "traditionalPriceCeiling", label: "Ceiling (% of fair price)", type: "multiplier", step: 1 },
+          { key: "traditionalNsmOverrideRate", label: "NSM Override Rate (at/above fair)", type: "percent" },
+          { key: "traditionalNsmOverrideRateBelowFair", label: "NSM Override Rate (below fair)", type: "percent" },
+        ]}
+        values={values}
+        onChange={updateValue}
+      />
+
+      <div className="flex gap-3 pt-2">
         <Button onClick={handleSave} disabled={saving}>
           {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save Settings

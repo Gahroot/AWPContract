@@ -25,10 +25,13 @@ enum ContractStatus {
   COMPLETED
 }
 
-enum CommissionModelType {
-  FLAT_PERCENT
-  PER_SALESPERSON
-  TIERED
+enum CommissionType {
+  SALES_REP
+  SETTER
+  SETTER_MANAGER
+  TERRITORY_OWNER
+  VP
+  NSM
 }
 
 // ─── Auth.js Models ───────────────────────────────────────────
@@ -45,10 +48,18 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Management flags
+  isSetterManager  Boolean  @default(false)
+  isTerritoryOwner Boolean  @default(false)
+  isVP             Boolean  @default(false)
+  isNSM            Boolean  @default(false)
+  territory        String?
+
   accounts          Account[]
   sessions          Session[]
   contracts         Contract[]
-  commissionRate    CommissionRate?
+  salesRepContracts Contract[] @relation("SalesRepContracts")
+  setterContracts   Contract[] @relation("SetterContracts")
   commissionRecords CommissionRecord[]
   invitesSent       Invite[]  @relation("InvitedByUser")
   inviteAccepted    Invite[]  @relation("AcceptedInvite")
@@ -179,6 +190,10 @@ model Contract {
   // Relations
   userId       String?
   user         User?         @relation(fields: [userId], references: [id])
+  salesRepId   String?
+  salesRep     User?         @relation("SalesRepContracts", fields: [salesRepId], references: [id])
+  setterId     String?
+  setter       User?         @relation("SetterContracts", fields: [setterId], references: [id])
   lineItems         LineItem[]
   addendums         Addendum[]
   changeOrders      ChangeOrder[]
@@ -189,6 +204,8 @@ model Contract {
 
   @@index([status])
   @@index([userId])
+  @@index([salesRepId])
+  @@index([setterId])
   @@index([accessToken])
 }
 
@@ -333,53 +350,71 @@ model Setting {
 
 // ─── Commission Models ──────────────────────────────────────
 
-model CommissionConfig {
-  id        String              @id @default(cuid())
-  modelType CommissionModelType @default(FLAT_PERCENT)
-  flatRate  Float?
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-}
+model CommissionSettings {
+  id        String @id @default(cuid())
 
-model CommissionRate {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  rate      Float
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Sales Rep
+  salesRepRate           Float @default(0.10)
+  salesRepRateBelowFair  Float @default(0.05)
+  salesRepFloor          Float @default(0.85)
+  salesRepCeiling        Float @default(1.15)
+
+  // Setter
+  setterRate  Float @default(0.03)
+  setterFloor Float @default(0.85)
+
+  // Setter Manager
+  setterManagerRate          Float @default(0.02)
+  setterManagerRateBelowFair Float @default(0.01)
+
+  // Territory Owner (tiered)
+  territoryOwnerRateTier1     Float @default(0.01)
+  territoryOwnerRateTier2     Float @default(0.015)
+  territoryOwnerRateTier3     Float @default(0.02)
+  territoryOwnerTier2Threshold Float @default(500000)
+  territoryOwnerTier3Threshold Float @default(1000000)
+
+  // VP
+  vpRate          Float @default(0.01)
+  vpRateBelowFair Float @default(0.005)
+
+  // NSM
+  nsmRate          Float @default(0.005)
+  nsmRateBelowFair Float @default(0.0025)
+
+  // Traditional Sales (self-gen)
+  traditionalSalesRepRate          Float @default(0.12)
+  traditionalSalesRepRateBelowFair Float @default(0.07)
+  traditionalFloorRate             Float @default(0.85)
+  traditionalPriceCeiling          Float @default(1.15)
+  traditionalNsmOverrideRate          Float @default(0.005)
+  traditionalNsmOverrideRateBelowFair Float @default(0.0025)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([userId])
-}
-
-model CommissionTier {
-  id        String   @id @default(cuid())
-  minAmount Float
-  maxAmount Float?
-  rate      Float
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([sortOrder])
 }
 
 model CommissionRecord {
-  id            String              @id @default(cuid())
-  contractId    String
-  userId        String
-  contractTotal Float
-  modelType     CommissionModelType
-  rate          Float
-  amount        Float
-  notes         String?
-  contract      Contract            @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  id             String         @id @default(cuid())
+  contractId     String
+  userId         String
+  commissionType CommissionType
+  contractTotal  Float
+  fairPrice      Float
+  isBelowFair    Boolean        @default(false)
+  isSelfGen      Boolean        @default(false)
+  rate           Float
+  amount         Float
+  tierLabel      String?
+  notes          String?
+  contract       Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@index([contractId])
   @@index([userId])
+  @@index([commissionType])
   @@index([createdAt])
 }
 

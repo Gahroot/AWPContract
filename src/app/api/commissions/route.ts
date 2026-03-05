@@ -14,11 +14,11 @@ export async function GET(req: NextRequest) {
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
   const userId = searchParams.get("userId");
+  const commissionType = searchParams.get("commissionType");
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20")));
   const skip = (page - 1) * limit;
 
-  // Build where clause
   const where: Prisma.CommissionRecordWhereInput = {};
 
   // SALESMAN can only see own records
@@ -26,6 +26,10 @@ export async function GET(req: NextRequest) {
     where.userId = session.user.id;
   } else if (userId) {
     where.userId = userId;
+  }
+
+  if (commissionType) {
+    where.commissionType = commissionType as Prisma.EnumCommissionTypeFilter;
   }
 
   if (startDate || endDate) {
@@ -59,8 +63,8 @@ export async function GET(req: NextRequest) {
     db.commissionRecord.count({ where }),
   ]);
 
-  // Summary aggregation using DB queries instead of fetching all records
-  const [aggregation, groupedByUser] = await Promise.all([
+  // Summary aggregation
+  const [aggregation, groupedByUser, groupedByType] = await Promise.all([
     db.commissionRecord.aggregate({
       where,
       _sum: { amount: true },
@@ -69,6 +73,12 @@ export async function GET(req: NextRequest) {
     }),
     db.commissionRecord.groupBy({
       by: ["userId"],
+      where,
+      _sum: { amount: true },
+      _count: true,
+    }),
+    db.commissionRecord.groupBy({
+      by: ["commissionType"],
       where,
       _sum: { amount: true },
       _count: true,
@@ -96,6 +106,12 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  const byRole = groupedByType.map((g) => ({
+    commissionType: g.commissionType,
+    totalCommission: Math.round((g._sum.amount ?? 0) * 100) / 100,
+    count: g._count,
+  }));
+
   return NextResponse.json({
     records,
     total,
@@ -107,5 +123,6 @@ export async function GET(req: NextRequest) {
       averageRate: Math.round(averageRate * 10000) / 10000,
     },
     byUser,
+    byRole,
   });
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { upsertCommissionForContract } from "@/lib/commission";
+import { upsertCommissionsForContract } from "@/lib/commission";
 
 // POST /api/commissions/recalculate - Recalculate all commissions
 export async function POST() {
@@ -19,7 +19,7 @@ export async function POST() {
 
   for (;;) {
     const contracts = await db.contract.findMany({
-      where: { status: "COMPLETED", userId: { not: null } },
+      where: { status: "COMPLETED" },
       select: { id: true },
       take: PAGE_SIZE,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -33,7 +33,7 @@ export async function POST() {
     for (let i = 0; i < contracts.length; i += BATCH_SIZE) {
       const batch = contracts.slice(i, i + BATCH_SIZE);
       const results = await Promise.allSettled(
-        batch.map(c => upsertCommissionForContract(c.id, "Bulk recalculation after config change"))
+        batch.map(c => upsertCommissionsForContract(c.id, "Bulk recalculation after config change"))
       );
       for (const r of results) {
         if (r.status === "fulfilled") success++;

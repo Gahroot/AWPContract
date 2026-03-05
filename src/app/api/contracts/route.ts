@@ -185,6 +185,8 @@ export async function POST(req: NextRequest) {
           : null,
         status: "DRAFT",
         userId: session.user.id,
+        salesRepId: contractData.salesRepId || session.user.id,
+        setterId: contractData.setterId || null,
         lineItems: {
           create: processedItems,
         },

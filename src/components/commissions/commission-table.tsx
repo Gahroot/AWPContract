@@ -8,11 +8,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 interface CommissionRecordRow {
   id: string;
   contractTotal: number;
-  modelType: string;
+  fairPrice: number;
+  commissionType: string;
+  isBelowFair: boolean;
+  isSelfGen: boolean;
+  tierLabel: string | null;
   rate: number;
   amount: number;
   createdAt: string;
@@ -38,17 +43,16 @@ function formatCurrency(n: number): string {
   }).format(n);
 }
 
-function formatModelType(type: string): string {
-  switch (type) {
-    case "FLAT_PERCENT":
-      return "Flat %";
-    case "PER_SALESPERSON":
-      return "Per-SP";
-    case "TIERED":
-      return "Tiered";
-    default:
-      return type;
-  }
+function formatRole(type: string): string {
+  const labels: Record<string, string> = {
+    SALES_REP: "Sales Rep",
+    SETTER: "Setter",
+    SETTER_MANAGER: "Setter Mgr",
+    TERRITORY_OWNER: "Territory",
+    VP: "VP",
+    NSM: "NSM",
+  };
+  return labels[type] ?? type;
 }
 
 export function CommissionTable({ records }: CommissionTableProps) {
@@ -67,9 +71,11 @@ export function CommissionTable({ records }: CommissionTableProps) {
           <TableRow>
             <TableHead>Contract #</TableHead>
             <TableHead>Customer</TableHead>
-            <TableHead>Salesperson</TableHead>
+            <TableHead>Recipient</TableHead>
+            <TableHead>Role</TableHead>
             <TableHead className="text-right">Contract Total</TableHead>
-            <TableHead>Model</TableHead>
+            <TableHead className="text-right">Fair Price</TableHead>
+            <TableHead>Flags</TableHead>
             <TableHead className="text-right">Rate</TableHead>
             <TableHead className="text-right">Commission</TableHead>
             <TableHead>Date</TableHead>
@@ -83,10 +89,36 @@ export function CommissionTable({ records }: CommissionTableProps) {
               </TableCell>
               <TableCell>{r.contract.customerName ?? "-"}</TableCell>
               <TableCell>{r.user.name ?? r.user.email}</TableCell>
+              <TableCell>
+                <Badge variant="outline" className="text-xs">
+                  {formatRole(r.commissionType)}
+                </Badge>
+              </TableCell>
               <TableCell className="text-right">
                 {formatCurrency(r.contractTotal)}
               </TableCell>
-              <TableCell>{formatModelType(r.modelType)}</TableCell>
+              <TableCell className="text-right">
+                {formatCurrency(r.fairPrice)}
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-1">
+                  {r.isBelowFair && (
+                    <Badge variant="destructive" className="text-xs">
+                      Below Fair
+                    </Badge>
+                  )}
+                  {r.isSelfGen && (
+                    <Badge variant="secondary" className="text-xs">
+                      Self-Gen
+                    </Badge>
+                  )}
+                  {r.tierLabel && (
+                    <Badge variant="outline" className="text-xs">
+                      {r.tierLabel}
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
               <TableCell className="text-right">
                 {(r.rate * 100).toFixed(2)}%
               </TableCell>

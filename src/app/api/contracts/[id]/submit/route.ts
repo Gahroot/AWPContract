@@ -154,6 +154,8 @@ export async function POST(
         authorizedSignatureDate: contractData.authorizedSignatureDate
           ? new Date(contractData.authorizedSignatureDate)
           : null,
+        salesRepId: contractData.salesRepId || undefined,
+        setterId: contractData.setterId !== undefined ? (contractData.setterId || null) : undefined,
         status: "COMPLETED",
         lineItems: {
           create: processedItems,
@@ -188,8 +190,8 @@ export async function POST(
 
   // Commission calculation
   try {
-    const { upsertCommissionForContract } = await import("@/lib/commission");
-    await upsertCommissionForContract(id, "Initial calculation on contract completion");
+    const { upsertCommissionsForContract } = await import("@/lib/commission");
+    await upsertCommissionsForContract(id, "Initial calculation on contract completion");
   } catch (e) {
     console.error("Commission calculation failed:", e);
   }

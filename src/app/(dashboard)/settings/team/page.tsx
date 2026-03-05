@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Card,
   CardContent,
@@ -46,6 +47,11 @@ interface User {
   email: string;
   role: string;
   market: string;
+  isSetterManager: boolean;
+  isTerritoryOwner: boolean;
+  isVP: boolean;
+  isNSM: boolean;
+  territory: string | null;
   createdAt: string;
 }
 
@@ -88,6 +94,37 @@ export default function TeamManagementPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  async function toggleRole(userId: string, field: string, value: boolean) {
+    const res = await fetch(`/api/users/${userId}/roles`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, ...updated } : u))
+      );
+      toast.success("Role updated");
+    } else {
+      toast.error("Failed to update role");
+    }
+  }
+
+  async function updateTerritory(userId: string, territory: string) {
+    const res = await fetch(`/api/users/${userId}/roles`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ territory }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, ...updated } : u))
+      );
+    }
+  }
 
   async function handleCreateInvite() {
     setCreating(true);
@@ -154,7 +191,7 @@ export default function TeamManagementPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       <div className="flex items-center gap-4">
         <Link href="/settings">
           <Button variant="ghost" size="icon">
@@ -164,12 +201,12 @@ export default function TeamManagementPage() {
         <h1 className="text-2xl font-bold">Team Management</h1>
       </div>
 
-      {/* Team Members */}
+      {/* Team Members with Role Toggles */}
       <Card>
         <CardHeader>
           <CardTitle>Team Members</CardTitle>
           <CardDescription>
-            All users who have access to the system.
+            Manage user roles and commission management flags.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -180,7 +217,11 @@ export default function TeamManagementPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Market</TableHead>
-                <TableHead>Joined</TableHead>
+                <TableHead className="text-center">Setter Mgr</TableHead>
+                <TableHead className="text-center">Territory</TableHead>
+                <TableHead className="text-center">VP</TableHead>
+                <TableHead className="text-center">NSM</TableHead>
+                <TableHead>Territory</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -200,7 +241,38 @@ export default function TeamManagementPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>{user.market}</TableCell>
-                  <TableCell>{formatDate(user.createdAt)}</TableCell>
+                  <TableCell className="text-center">
+                    <Switch
+                      checked={user.isSetterManager}
+                      onCheckedChange={(v) => toggleRole(user.id, "isSetterManager", v)}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Switch
+                      checked={user.isTerritoryOwner}
+                      onCheckedChange={(v) => toggleRole(user.id, "isTerritoryOwner", v)}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Switch
+                      checked={user.isVP}
+                      onCheckedChange={(v) => toggleRole(user.id, "isVP", v)}
+                    />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Switch
+                      checked={user.isNSM}
+                      onCheckedChange={(v) => toggleRole(user.id, "isNSM", v)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      placeholder={user.market}
+                      defaultValue={user.territory ?? ""}
+                      className="w-[100px] h-8 text-sm"
+                      onBlur={(e) => updateTerritory(user.id, e.target.value)}
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

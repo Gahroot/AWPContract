@@ -41,19 +41,22 @@ export async function GET(req: NextRequest) {
     take: 1_000,
   });
 
-  // Build CSV
   const header =
-    "Contract #,Customer,Salesperson,Contract Total,Model,Rate %,Commission Amount,Date";
+    "Contract #,Customer,Recipient,Role,Contract Total,Fair Price,Below Fair?,Self-Gen?,Tier,Rate %,Commission Amount,Date";
   const rows = records.map((r) => {
-    const salesperson = r.user.name ?? r.user.email;
+    const recipient = r.user.name ?? r.user.email;
     const date = r.createdAt.toISOString().split("T")[0];
     const ratePercent = (r.rate * 100).toFixed(2);
     return [
       csvEscape(r.contract.contractNumber),
       csvEscape(r.contract.customerName ?? ""),
-      csvEscape(salesperson),
+      csvEscape(recipient),
+      r.commissionType,
       r.contractTotal.toFixed(2),
-      r.modelType,
+      r.fairPrice.toFixed(2),
+      r.isBelowFair ? "Yes" : "No",
+      r.isSelfGen ? "Yes" : "No",
+      r.tierLabel ?? "",
       ratePercent,
       r.amount.toFixed(2),
       date,

@@ -1,35 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { commissionConfigSchema } from "@/lib/validations";
+import { commissionSettingsSchema } from "@/lib/validations";
 
-// GET /api/commissions/config - Get commission configuration
+// GET /api/commissions/config - Get commission settings + management users
 export async function GET() {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const config = await db.commissionConfig.findFirst({
-    orderBy: { updatedAt: "desc" },
-  });
+  const settings = await db.commissionSettings.findFirst();
 
-  const tiers = await db.commissionTier.findMany({
-    orderBy: { sortOrder: "asc" },
-  });
-
-  const rates = await db.commissionRate.findMany({
-    include: { user: { select: { id: true, name: true, email: true } } },
+  const managementUsers = await db.user.findMany({
+    where: {
+      OR: [
+        { isSetterManager: true },
+        { isTerritoryOwner: true },
+        { isVP: true },
+        { isNSM: true },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      isSetterManager: true,
+      isTerritoryOwner: true,
+      isVP: true,
+      isNSM: true,
+      territory: true,
+    },
   });
 
   return NextResponse.json({
-    config: config ?? { modelType: "FLAT_PERCENT", flatRate: 0.1 },
-    tiers,
-    salespersonRates: rates,
+    settings: settings ?? null,
+    managementUsers,
   });
 }
 
-// PUT /api/commissions/config - Update commission configuration
+// PUT /api/commissions/config - Update commission settings
 export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
@@ -37,7 +47,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const body = await req.json();
-  const parsed = commissionConfigSchema.safeParse(body);
+  const parsed = commissionSettingsSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid data", details: parsed.error.flatten() },
@@ -45,47 +55,16 @@ export async function PUT(req: NextRequest) {
     );
   }
 
-  const { modelType, flatRate, tiers, salespersonRates } = parsed.data;
-
-  // Upsert config (single row)
-  const existing = await db.commissionConfig.findFirst();
+  const existing = await db.commissionSettings.findFirst();
   if (existing) {
-    await db.commissionConfig.update({
+    await db.commissionSettings.update({
       where: { id: existing.id },
-      data: { modelType, flatRate: flatRate ?? null },
+      data: parsed.data,
     });
   } else {
-    await db.commissionConfig.create({
-      data: { modelType, flatRate: flatRate ?? null },
+    await db.commissionSettings.create({
+      data: parsed.data,
     });
-  }
-
-  // Replace tiers
-  if (tiers !== undefined) {
-    await db.commissionTier.deleteMany();
-    if (tiers.length > 0) {
-      await db.commissionTier.createMany({ data: tiers });
-    }
-  }
-
-  // Upsert per-salesperson rates
-  if (salespersonRates !== undefined) {
-    for (const sr of salespersonRates) {
-      await db.commissionRate.upsert({
-        where: { userId: sr.userId },
-        update: { rate: sr.rate },
-        create: { userId: sr.userId, rate: sr.rate },
-      });
-    }
-    // Remove rates for users not in the list
-    const keepUserIds = salespersonRates.map((sr) => sr.userId);
-    if (keepUserIds.length > 0) {
-      await db.commissionRate.deleteMany({
-        where: { userId: { notIn: keepUserIds } },
-      });
-    } else {
-      await db.commissionRate.deleteMany();
-    }
   }
 
   return NextResponse.json({ success: true });

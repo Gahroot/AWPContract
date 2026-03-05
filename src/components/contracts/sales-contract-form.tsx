@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -167,6 +167,15 @@ export function SalesContractForm({
   });
 
   const { register, handleSubmit, setValue, getValues, watch } = methods;
+
+  // Fetch salespeople for dropdowns
+  const [salespeople, setSalespeople] = useState<{ id: string; name: string | null; email: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/users/salespeople")
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setSalespeople)
+      .catch(() => {});
+  }, []);
 
   // Auto-save handler
   const handleAutoSave = useCallback(
@@ -470,6 +479,40 @@ export function SalesContractForm({
                   {...register("measuredBy")}
                 />
               </div>
+              {salespeople.length > 0 && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="salesRepId">Sales Rep (Commission)</Label>
+                    <select
+                      id="salesRepId"
+                      {...register("salesRepId")}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="">Default (current user)</option>
+                      {salespeople.map((sp) => (
+                        <option key={sp.id} value={sp.id}>
+                          {sp.name || sp.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="setterId">Setter (Commission)</Label>
+                    <select
+                      id="setterId"
+                      {...register("setterId")}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <option value="">None (self-gen)</option>
+                      {salespeople.map((sp) => (
+                        <option key={sp.id} value={sp.id}>
+                          {sp.name || sp.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="leadTest">Lead Test</Label>
                 <Switch

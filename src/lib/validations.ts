@@ -69,6 +69,8 @@ export const salesContractDraftSchema = z.object({
   sidingApplicationQty: z.coerce.number().min(0).default(0),
   foundationApplicationQty: z.coerce.number().min(0).default(0),
   woodApplicationQty: z.coerce.number().min(0).default(0),
+  salesRepId: z.string().optional(),
+  setterId: z.string().optional(),
   measurementNotes: z.string().optional(),
   contractorSignature: z.string().optional(),
   contractorSignatureDate: z.string().optional(),
@@ -152,31 +154,46 @@ export const changeOrderSchema = z.object({
 
 export type ChangeOrderFormValues = z.infer<typeof changeOrderSchema>;
 
-// Commission config schema
-export const commissionConfigSchema = z.object({
-  modelType: z.enum(["FLAT_PERCENT", "PER_SALESPERSON", "TIERED"]),
-  flatRate: z.coerce.number().min(0).max(1).optional(),
-  tiers: z
-    .array(
-      z.object({
-        minAmount: z.coerce.number().min(0),
-        maxAmount: z.coerce.number().min(0).nullable(),
-        rate: z.coerce.number().min(0).max(1),
-        sortOrder: z.coerce.number().min(0),
-      })
-    )
-    .optional(),
-  salespersonRates: z
-    .array(
-      z.object({
-        userId: z.string().min(1),
-        rate: z.coerce.number().min(0).max(1),
-      })
-    )
-    .optional(),
+// Commission settings schema (7-section panel)
+const rate = z.coerce.number().min(0).max(1);
+const threshold = z.coerce.number().min(0);
+const ceiling = z.coerce.number().min(0.5).max(2);
+const floor = z.coerce.number().min(0.5).max(1);
+
+export const commissionSettingsSchema = z.object({
+  // Sales Rep
+  salesRepRate: rate,
+  salesRepRateBelowFair: rate,
+  salesRepFloor: floor,
+  salesRepCeiling: ceiling,
+  // Setter
+  setterRate: rate,
+  setterFloor: floor,
+  // Setter Manager
+  setterManagerRate: rate,
+  setterManagerRateBelowFair: rate,
+  // Territory Owner
+  territoryOwnerRateTier1: rate,
+  territoryOwnerRateTier2: rate,
+  territoryOwnerRateTier3: rate,
+  territoryOwnerTier2Threshold: threshold,
+  territoryOwnerTier3Threshold: threshold,
+  // VP
+  vpRate: rate,
+  vpRateBelowFair: rate,
+  // NSM
+  nsmRate: rate,
+  nsmRateBelowFair: rate,
+  // Traditional Sales (self-gen)
+  traditionalSalesRepRate: rate,
+  traditionalSalesRepRateBelowFair: rate,
+  traditionalFloorRate: floor,
+  traditionalPriceCeiling: ceiling,
+  traditionalNsmOverrideRate: rate,
+  traditionalNsmOverrideRateBelowFair: rate,
 });
 
-export type CommissionConfigFormValues = z.infer<typeof commissionConfigSchema>;
+export type CommissionSettingsFormValues = z.infer<typeof commissionSettingsSchema>;
 
 // Invite schemas
 export const createInviteSchema = z.object({
@@ -189,7 +206,13 @@ export type CreateInviteValues = z.infer<typeof createInviteSchema>;
 export const acceptInviteSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z
+      .string()
+      .min(12, "Password must be at least 12 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
