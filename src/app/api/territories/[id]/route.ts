@@ -3,6 +3,34 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { updateTerritorySchema } from "@/lib/validations";
 
+// GET /api/territories/[id] - Get territory with users
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const territory = await db.territory.findUnique({
+    where: { id },
+    include: {
+      users: {
+        select: { id: true, name: true, email: true, isTerritoryOwner: true },
+        orderBy: { name: "asc" },
+      },
+    },
+  });
+
+  if (!territory) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(territory);
+}
+
 // PATCH /api/territories/[id] - Update territory (admin only)
 export async function PATCH(
   req: NextRequest,
@@ -14,7 +42,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
   const parsed = updateTerritorySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

@@ -16,6 +16,10 @@ export async function GET(req: NextRequest) {
     where: showAll ? {} : { isActive: true },
     include: {
       _count: { select: { users: true } },
+      users: {
+        where: { isTerritoryOwner: true },
+        select: { id: true, name: true, email: true },
+      },
     },
     orderBy: { name: "asc" },
   });
@@ -30,7 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
   const parsed = createTerritorySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

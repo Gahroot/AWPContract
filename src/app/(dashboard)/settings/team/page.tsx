@@ -139,6 +139,11 @@ export default function TeamManagementPage() {
         prev.map((u) => (u.id === userId ? { ...u, ...updated } : u))
       );
       toast.success("Role updated");
+
+      // Warn if territory owner toggled on without a territory
+      if (field === "isTerritoryOwner" && value && !updated.territoryId) {
+        toast.warning("Please assign a territory for this user to activate territory owner commissions");
+      }
     } else {
       toast.error("Failed to update role");
     }
@@ -349,12 +354,14 @@ export default function TeamManagementPage() {
                   )}
                   <TableCell>
                     {isAdmin ? (
-                      <TerritoryCombobox
-                        value={user.territory}
-                        options={territoryOptions}
-                        onChange={(t) => updateTerritory(user.id, t)}
-                        placeholder={user.market}
-                      />
+                      <div className={user.isTerritoryOwner && !user.territoryId ? "rounded ring-2 ring-destructive" : ""}>
+                        <TerritoryCombobox
+                          value={user.territory}
+                          options={territoryOptions}
+                          onChange={(t) => updateTerritory(user.id, t)}
+                          placeholder={user.isTerritoryOwner && !user.territoryId ? "Assign territory!" : user.market}
+                        />
+                      </div>
                     ) : (
                       <span className="text-sm">{user.territory?.name || user.market || "—"}</span>
                     )}

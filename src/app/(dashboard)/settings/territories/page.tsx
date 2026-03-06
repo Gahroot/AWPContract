@@ -36,9 +36,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Plus, ArrowLeft, Trash2 } from "lucide-react";
+import { Loader2, Plus, ArrowLeft, Trash2, Users } from "lucide-react";
 import Link from "next/link";
+
+interface TerritoryOwner {
+  id: string;
+  name: string | null;
+  email: string;
+}
 
 interface Territory {
   id: string;
@@ -46,6 +53,14 @@ interface Territory {
   market: string;
   isActive: boolean;
   _count: { users: number };
+  users: TerritoryOwner[];
+}
+
+interface TerritoryUser {
+  id: string;
+  name: string | null;
+  email: string;
+  isTerritoryOwner: boolean;
 }
 
 export default function TerritoriesPage() {
@@ -55,6 +70,12 @@ export default function TerritoriesPage() {
   const [newName, setNewName] = useState("");
   const [newMarket, setNewMarket] = useState("SLC");
   const [creating, setCreating] = useState(false);
+
+  // Manage owners dialog state
+  const [manageDialogOpen, setManageDialogOpen] = useState(false);
+  const [manageTerritoryName, setManageTerritoryName] = useState("");
+  const [territoryUsers, setTerritoryUsers] = useState<TerritoryUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   async function fetchTerritories() {
     try {
@@ -113,6 +134,40 @@ export default function TerritoriesPage() {
       fetchTerritories();
     } else {
       toast.error("Failed to delete territory");
+    }
+  }
+
+  async function openManageDialog(territory: Territory) {
+    setManageTerritoryName(territory.name);
+    setManageDialogOpen(true);
+    setLoadingUsers(true);
+    try {
+      const res = await fetch(`/api/territories/${territory.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTerritoryUsers(data.users);
+      } else {
+        toast.error("Failed to load territory users");
+      }
+    } finally {
+      setLoadingUsers(false);
+    }
+  }
+
+  async function toggleTerritoryOwner(userId: string, value: boolean) {
+    const res = await fetch(`/api/users/${userId}/roles`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isTerritoryOwner: value }),
+    });
+    if (res.ok) {
+      setTerritoryUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, isTerritoryOwner: value } : u))
+      );
+      fetchTerritories();
+      toast.success(value ? "Territory owner assigned" : "Territory owner removed");
+    } else {
+      toast.error("Failed to update role");
     }
   }
 
@@ -196,6 +251,7 @@ export default function TerritoriesPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Market</TableHead>
+                <TableHead>Territory Owner</TableHead>
                 <TableHead className="text-center">Users</TableHead>
                 <TableHead className="text-center">Active</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -206,6 +262,17 @@ export default function TerritoriesPage() {
                 <TableRow key={territory.id}>
                   <TableCell className="font-medium">{territory.name}</TableCell>
                   <TableCell>{territory.market}</TableCell>
+                  <TableCell>
+                    {territory.users.length > 0 ? (
+                      <span className="text-sm">
+                        {territory.users.map((u) => u.name || u.email).join(", ")}
+                      </span>
+                    ) : (
+                      <Badge variant="destructive" className="text-xs">
+                        None
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="text-center">
                     {territory._count.users}
                   </TableCell>
@@ -216,20 +283,30 @@ export default function TerritoriesPage() {
                     />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(territory.id)}
-                      title="Delete territory"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openManageDialog(territory)}
+                        title="Manage territory owners"
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(territory.id)}
+                        title="Delete territory"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
               {territories.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No territories yet. Add one to get started.
                   </TableCell>
                 </TableRow>
@@ -238,6 +315,48 @@ export default function TerritoriesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Manage Territory Owners Dialog */}
+      <Dialog open={manageDialogOpen} onOpenChange={setManageDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Owners - {manageTerritoryName}</DialogTitle>
+            <DialogDescription>
+              Toggle territory owner for users assigned to this territory.
+            </DialogDescription>
+          </DialogHeader>
+          {loadingUsers ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : territoryUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No users assigned to this territory. Assign users from the Team Management page.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {territoryUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{user.name || "Unnamed"}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">Owner</Label>
+                    <Switch
+                      checked={user.isTerritoryOwner}
+                      onCheckedChange={(v) => toggleTerritoryOwner(user.id, v)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
