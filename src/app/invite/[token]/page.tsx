@@ -56,8 +56,16 @@ export default function AcceptInvitePage() {
 
     const errors: Record<string, string> = {};
     if (!name.trim()) errors.name = "Name is required";
-    if (password.length < 8)
-      errors.password = "Password must be at least 8 characters";
+    if (password.length < 12)
+      errors.password = "Password must be at least 12 characters";
+    else if (!/[A-Z]/.test(password))
+      errors.password = "Password must contain at least one uppercase letter";
+    else if (!/[a-z]/.test(password))
+      errors.password = "Password must contain at least one lowercase letter";
+    else if (!/[0-9]/.test(password))
+      errors.password = "Password must contain at least one number";
+    else if (!/[^A-Za-z0-9]/.test(password))
+      errors.password = "Password must contain at least one special character";
     if (password !== confirmPassword)
       errors.confirmPassword = "Passwords do not match";
 
@@ -78,7 +86,15 @@ export default function AcceptInvitePage() {
         setSuccess(true);
       } else {
         const data = await res.json();
-        setError(data.error || "Failed to create account");
+        if (data.details?.fieldErrors) {
+          const fieldErrors: Record<string, string> = {};
+          for (const [key, msgs] of Object.entries(data.details.fieldErrors)) {
+            fieldErrors[key] = (msgs as string[])[0];
+          }
+          setFormErrors(fieldErrors);
+        } else {
+          setFormErrors({ _form: data.error || "Failed to create account" });
+        }
       }
     } catch {
       setError("Something went wrong");
@@ -171,7 +187,7 @@ export default function AcceptInvitePage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 8 characters"
+                placeholder="Minimum 12 characters"
               />
               {formErrors.password && (
                 <p className="text-sm text-destructive">
@@ -193,6 +209,10 @@ export default function AcceptInvitePage() {
                 </p>
               )}
             </div>
+
+            {formErrors._form && (
+              <p className="text-sm text-destructive">{formErrors._form}</p>
+            )}
 
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting && (
