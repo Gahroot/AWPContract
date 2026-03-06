@@ -4,8 +4,6 @@
 import { Page, Text, View } from "@react-pdf/renderer";
 import {
   sharedStyles,
-  PacketHeader,
-  PacketFooter,
   type PdfContract,
   feetInchesFormat,
   formatDatePdf,
@@ -27,103 +25,84 @@ export function GridPatternPage({ contract }: GridPatternPageProps) {
 
   return (
     <Page size="LETTER" style={sharedStyles.page}>
-      <PacketHeader title="GRID PATTERN SPECIFICATIONS" />
+      {/* Header */}
+      <View style={gpStyles.header}>
+        <Text style={gpStyles.headerTitle}>GRID PATTERNS</Text>
+        <Text style={gpStyles.headerInfo}>
+          2451 S 600 W STE 500, Salt Lake City, UT 84115 • Phone 801-438-4554
+        </Text>
+        <Text style={gpStyles.headerInfo}>
+          direct@advancedwindows.com • www.advancedwindows.com
+        </Text>
+      </View>
 
-      {/* Blue underline */}
-      <View style={{
-        borderBottom: "3px solid #1a365d",
-        marginBottom: 15,
-      }} />
+      {/* Title */}
+      <Text style={gpStyles.pageTitle}>Grid Pattern Specifications</Text>
 
       {/* Info Row */}
-      <View style={{
-        flexDirection: "row",
-        marginBottom: 15,
-        backgroundColor: "#f5f5f5",
-        padding: 8,
-        border: "1px solid #ddd",
-      }}>
-        <View style={{ flex: 1 }}>
-          <Text style={[sharedStyles.bold, { fontSize: 7 }]}>CUSTOMER:</Text>
-          <Text style={sharedStyles.textSm}>{contract.customerName || ""}</Text>
+      <View style={gpStyles.infoRow}>
+        <View style={gpStyles.infoCell}>
+          <Text style={gpStyles.infoLabel}>Customer:</Text>
+          <Text style={gpStyles.infoValue}>{contract.customerName || ""}</Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[sharedStyles.bold, { fontSize: 7 }]}>DATE:</Text>
-          <Text style={sharedStyles.textSm}>{formatDatePdf(contract.customerSignatureDate || contract.createdAt)}</Text>
+        <View style={gpStyles.infoCell}>
+          <Text style={gpStyles.infoLabel}>Date:</Text>
+          <Text style={gpStyles.infoValue}>{formatDatePdf(contract.customerSignatureDate || contract.createdAt)}</Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[sharedStyles.bold, { fontSize: 7 }]}>SALES REP:</Text>
-          <Text style={sharedStyles.textSm}>{contract.salesman || ""}</Text>
+        <View style={gpStyles.infoCell}>
+          <Text style={gpStyles.infoLabel}>Sales Rep:</Text>
+          <Text style={gpStyles.infoValue}>{contract.salesman || ""}</Text>
         </View>
       </View>
 
-      {/* Grid Items Table */}
+      {/* Intro */}
+      <Text style={gpStyles.introText}>
+        The following grid patterns have been specified for windows/doors with grids. Visual representations are shown for each item.
+      </Text>
+
+      {/* Grid Items */}
       {itemsWithGrids.map((item, index) => (
-        <View key={item.id || index} style={{
-          flexDirection: "row",
-          marginBottom: 10,
-          border: "1px solid #999",
-          minHeight: 80,
-        }}>
-          {/* Left - Window/Door Details */}
-          <View style={{ width: "60%", borderRight: "1px solid #999" }}>
-            <View style={{
-              backgroundColor: "#1a365d",
-              color: "#fff",
-              padding: 4,
-            }}>
-              <Text style={[sharedStyles.bold, { fontSize: 8 }]}>
-                Location: {item.location || ""} | Type: {item.type}
-              </Text>
-            </View>
-            <View style={{ padding: 6 }}>
-              <Text style={sharedStyles.textSm}>
-                <Text style={sharedStyles.bold}>Size:</Text> {feetInchesFormat(item.width)} x {feetInchesFormat(item.height)}
-              </Text>
-              <Text style={sharedStyles.textSm}>
-                <Text style={sharedStyles.bold}>Grid Type:</Text> {item.gridType || ""}
-              </Text>
-              <Text style={sharedStyles.textSm}>
-                <Text style={sharedStyles.bold}>Color:</Text> {item.color || ""}
-              </Text>
-              {item.series && (
-                <Text style={sharedStyles.textSm}>
-                  <Text style={sharedStyles.bold}>Series:</Text> {item.series}
-                </Text>
-              )}
-            </View>
+        <View key={item.id || index} style={gpStyles.itemRow}>
+          {/* Left - Details */}
+          <View style={gpStyles.detailsSection}>
+            <Text style={gpStyles.itemTitle}>{index + 1}. {item.location || ""}</Text>
+            <Text style={gpStyles.itemText}>{item.type}</Text>
+            <Text style={gpStyles.itemText}>
+              {feetInchesFormat(item.width)} x {feetInchesFormat(item.height)}
+            </Text>
+            <Text style={gpStyles.itemText}>{item.gridType || ""}</Text>
           </View>
 
-          {/* Right - Custom Sketch Area */}
-          <View style={{ width: "40%", padding: 6 }}>
-            <Text style={[sharedStyles.bold, { fontSize: 7, marginBottom: 3 }]}>
-              CUSTOM SKETCH:
-            </Text>
-            <View style={{
-              flex: 1,
-              border: "0.5px dashed #999",
-              minHeight: 50,
-              backgroundColor: "#fafafa",
-            }} />
+          {/* Right - Custom Sketch */}
+          <View style={gpStyles.sketchSection}>
+            <Text style={gpStyles.sketchLabel}>Custom sketch</Text>
+            <View style={gpStyles.sketchArea} />
           </View>
         </View>
       ))}
 
       {/* Legend Box */}
       <View style={[sharedStyles.borderedBox, { marginTop: 15, backgroundColor: "#f9f9f9" }]}>
-        <Text style={[sharedStyles.bold, { marginBottom: 5 }]}>LEGEND:</Text>
+        <Text style={[sharedStyles.bold, { marginBottom: 5 }]}>Grid Pattern Legend:</Text>
         <Text style={sharedStyles.textSm}>
-          <Text style={sharedStyles.bold}>V</Text> = Vertical bars (top to bottom)
+          <Text style={sharedStyles.bold}>V (Vertical):</Text> Number of vertical grid lines dividing the glass horizontally
         </Text>
         <Text style={sharedStyles.textSm}>
-          <Text style={sharedStyles.bold}>H</Text> = Horizontal bars (left to right)
+          <Text style={sharedStyles.bold}>H (Horizontal):</Text> Number of horizontal grid lines dividing the glass vertically
         </Text>
-        <Text style={sharedStyles.textSm}>
-          Example: &quot;2V 1H&quot; = 2 vertical bars with 1 horizontal bar intersection
+        <Text style={[sharedStyles.textSm, { marginTop: 3 }]}>
+          Example: 2V × 3H creates a pattern with 2 vertical and 3 horizontal lines (12 panes total)
         </Text>
       </View>
 
-      <PacketFooter pageLabel="Grid patterns are custom made to your specifications." />
+      {/* Footer */}
+      <View style={gpStyles.footer}>
+        <Text style={gpStyles.footerText}>&quot;Utah&apos;s Premier Replacement Window Company&quot;</Text>
+        <Text style={gpStyles.footerText}>www.advancedwindows.com</Text>
+        <Text style={gpStyles.footerText}>
+          2451 S 600 W STE 500, Salt Lake City, UT 84115 • Office: 801-438-4554
+        </Text>
+      </View>
     </Page>
   );
 }
@@ -134,3 +113,101 @@ export function needsGridPatternPage(contract: PdfContract): boolean {
     (item) => item.gridType && item.gridType.trim() !== ""
   );
 }
+
+const gpStyles = {
+  header: {
+    marginBottom: 15,
+  },
+  headerTitle: {
+    fontSize: 11,
+    fontWeight: "bold",
+    textAlign: "right" as const,
+    color: "#1a365d",
+  },
+  headerInfo: {
+    fontSize: 8,
+    textAlign: "right" as const,
+    color: "#333",
+  },
+  pageTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#1a365d",
+    marginBottom: 15,
+  },
+  infoRow: {
+    flexDirection: "row" as const,
+    marginBottom: 15,
+    backgroundColor: "#f5f5f5",
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  infoCell: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 7,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 8,
+  },
+  introText: {
+    fontSize: 8,
+    marginBottom: 15,
+    fontStyle: "italic" as const,
+  },
+  itemRow: {
+    flexDirection: "row" as const,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#999",
+    minHeight: 80,
+  },
+  detailsSection: {
+    width: "60%",
+    borderRightWidth: 1,
+    borderRightColor: "#999",
+    padding: 8,
+  },
+  itemTitle: {
+    fontSize: 9,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  itemText: {
+    fontSize: 8,
+    marginBottom: 2,
+  },
+  sketchSection: {
+    width: "40%",
+    padding: 8,
+  },
+  sketchLabel: {
+    fontSize: 7,
+    fontWeight: "bold",
+    marginBottom: 3,
+  },
+  sketchArea: {
+    flex: 1,
+    borderWidth: 0.5,
+    borderStyle: "dashed" as const,
+    borderColor: "#999",
+    minHeight: 50,
+    backgroundColor: "#fafafa",
+  },
+  footer: {
+    position: "absolute" as const,
+    bottom: 30,
+    left: 30,
+    right: 30,
+    textAlign: "center" as const,
+  },
+  footerText: {
+    fontSize: 8,
+    color: "#666",
+    marginBottom: 2,
+  },
+};

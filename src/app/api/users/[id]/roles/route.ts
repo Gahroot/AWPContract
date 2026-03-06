@@ -13,7 +13,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   const data: Record<string, unknown> = {};
   if (typeof body.isSetterManager === "boolean") data.isSetterManager = body.isSetterManager;
@@ -38,6 +41,7 @@ export async function PATCH(
       isVP: true,
       isNSM: true,
       territoryId: true,
+      territory: { select: { id: true, name: true } },
     },
   });
 

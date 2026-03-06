@@ -50,6 +50,7 @@ import {
   type ProductDef,
 } from "@/lib/constants";
 import { calculateLineItem, formatCurrency } from "@/lib/pricing";
+import { GridPatternDialog } from "@/components/contracts/wizard/grid-pattern-dialog";
 
 const BOOLEAN_FIELDS = [
   "temperedGlass",
@@ -82,6 +83,9 @@ const defaultLineItem = {
   awpShutterRnr: false,
   price: 0,
   sortOrder: 0,
+  gridVerticalLines: 0,
+  gridHorizontalLines: 0,
+  gridPatternNotes: "",
 };
 
 export function LineItemsTable() {
@@ -118,6 +122,7 @@ export function LineItemsTable() {
               <TableHead className="min-w-[100px]">Operation</TableHead>
               <TableHead className="min-w-[100px]">Grid Type</TableHead>
               <TableHead className="min-w-[100px]">Glass Type</TableHead>
+              <TableHead className="w-10">Grid Pattern</TableHead>
               <TableHead className="w-12 text-center text-xs">Options</TableHead>
               <TableHead className="w-24 text-right">Price</TableHead>
               <TableHead className="w-10" />
@@ -134,7 +139,7 @@ export function LineItemsTable() {
               />
             ))}
             <TableRow>
-              <TableCell colSpan={15}>
+              <TableCell colSpan={16}>
                 <Button
                   type="button"
                   variant="outline"
@@ -584,6 +589,11 @@ function LineItemRow({
             )}
           </SelectContent>
         </Select>
+      </TableCell>
+
+      {/* Grid Pattern */}
+      <TableCell>
+        <GridPatternDialog lineItemIndex={index} />
       </TableCell>
 
       {/* Boolean Addons (popover) */}

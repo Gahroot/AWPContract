@@ -4,14 +4,13 @@
 import { Page, Text, View } from "@react-pdf/renderer";
 import {
   sharedStyles,
-  PacketHeader,
-  PacketFooter,
-  SignatureBlock,
-  type PdfContract,
   feetInchesFormat,
-  formatCurrencyPdf,
   formatDatePdf,
+  formatCurrencyPdf,
   downPaymentPercent,
+  checkbox,
+  type PdfContract,
+  type PdfLineItem,
 } from "./shared";
 
 interface SalesContractPageProps {
@@ -19,229 +18,317 @@ interface SalesContractPageProps {
 }
 
 export function SalesContractPage({ contract }: SalesContractPageProps) {
+  // Helper to get operation display
+  const getOperationDisplay = (item: PdfLineItem) => {
+    const op = item.operation || "";
+    if (!op) return "";
+    return op;
+  };
+
   return (
     <Page size="LETTER" style={sharedStyles.page}>
-      <PacketHeader
-        title="SALES CONTRACT"
-        subtitle={contract.contractNumber ? `Contract #: ${contract.contractNumber.slice(0, 8)}` : undefined}
-      />
+      {/* Header */}
+      <View style={salesContractStyles.header}>
+        <Text style={salesContractStyles.headerTitle}>SALES CONTRACT</Text>
+        <Text style={salesContractStyles.headerInfo}>
+          2451 S 600 W STE 500, Salt Lake City, UT 84115 • Phone 801-438-4554
+        </Text>
+        <Text style={salesContractStyles.headerInfo}>
+          direct@advancedwindows.com • www.advancedwindows.com
+        </Text>
+      </View>
+
+      {/* Page Title */}
+      <View style={{ alignItems: "center", marginBottom: 15 }}>
+        <Text style={salesContractStyles.pageTitle}>Sales Contract</Text>
+      </View>
 
       {/* Customer Info Grid */}
-      <View style={[sharedStyles.table, { border: "1px solid #333" }]}>
+      <View style={salesContractStyles.customerGrid}>
         {/* Row 1 */}
-        <View style={{ flexDirection: "row", borderBottom: "0.5px solid #999" }}>
-          <View style={[sharedStyles.tableCell, { width: "25%" }, sharedStyles.bold]}>
-            <Text>Customer:</Text>
+        <View style={salesContractStyles.gridRow}>
+          <View style={[salesContractStyles.gridCell, { borderLeftWidth: 1 }]}>
+            <Text style={salesContractStyles.label}>Customer:</Text>
+            <Text style={salesContractStyles.value}>{contract.customerName || ""}</Text>
           </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>Date Written:</Text>
+          <View style={salesContractStyles.gridCell}>
+            <Text style={salesContractStyles.label}>Date Written:</Text>
+            <Text style={salesContractStyles.value}>{formatDatePdf(contract.createdAt)}</Text>
           </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>Year Built:</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>Sales Rep:</Text>
-          </View>
-        </View>
-        <View style={{ flexDirection: "row", borderBottom: "0.5px solid #999" }}>
-          <View style={[sharedStyles.tableCell, { width: "25%" }, sharedStyles.bold]}>
-            <Text>{contract.customerName || ""}</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>{formatDatePdf(contract.createdAt)}</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>{contract.yearBuilt || ""}</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>{contract.salesman || ""}</Text>
+          <View style={[salesContractStyles.gridCell, { borderRightWidth: 1 }]}>
+            <Text style={salesContractStyles.label}>Year Built:</Text>
+            <Text style={salesContractStyles.value}>{contract.yearBuilt || ""}</Text>
           </View>
         </View>
         {/* Row 2 */}
-        <View style={{ flexDirection: "row", borderBottom: "0.5px solid #999" }}>
-          <View style={[sharedStyles.tableCell, { width: "33%" }]}>
-            <Text>Job Address:</Text>
+        <View style={salesContractStyles.gridRow}>
+          <View style={[salesContractStyles.gridCell, { borderLeftWidth: 1 }]}>
+            <Text style={salesContractStyles.label}>Job Address:</Text>
+            <Text style={salesContractStyles.value}>{contract.jobAddress || ""}</Text>
           </View>
-          <View style={[sharedStyles.tableCell, { width: "33%" }]}>
-            <Text>City:</Text>
+          <View style={salesContractStyles.gridCell}>
+            <Text style={salesContractStyles.label}>City:</Text>
+            <Text style={salesContractStyles.value}>{contract.customerCity || ""}</Text>
           </View>
-          <View style={[sharedStyles.tableCell, { width: "34%" }]}>
-            <Text>Zip:</Text>
-          </View>
-        </View>
-        <View style={{ flexDirection: "row", borderBottom: "0.5px solid #999" }}>
-          <View style={[sharedStyles.tableCell, { width: "33%" }]}>
-            <Text>{contract.jobAddress || ""}</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "33%" }]}>
-            <Text>{contract.customerCity || ""}</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "34%" }]}>
-            <Text>{contract.customerZip || ""}</Text>
+          <View style={[salesContractStyles.gridCell, { borderRightWidth: 1 }]}>
+            <Text style={salesContractStyles.label}>Zip:</Text>
+            <Text style={salesContractStyles.value}>{contract.customerZip || ""}</Text>
           </View>
         </View>
         {/* Row 3 */}
-        <View style={{ flexDirection: "row" }}>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>Phone:</Text>
+        <View style={[salesContractStyles.gridRow, { borderBottomWidth: 1 }]}>
+          <View style={[salesContractStyles.gridCell, { borderLeftWidth: 1 }]}>
+            <Text style={salesContractStyles.label}>Phone:</Text>
+            <Text style={salesContractStyles.value}>{contract.customerPhone || ""}</Text>
           </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>Email:</Text>
+          <View style={salesContractStyles.gridCell}>
+            <Text style={salesContractStyles.label}>Email:</Text>
+            <Text style={salesContractStyles.value}>{contract.customerEmail || ""}</Text>
           </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>Lead Test:</Text>
+          <View style={salesContractStyles.gridCell}>
+            <Text style={salesContractStyles.label}>Lead Test:</Text>
+            <Text style={salesContractStyles.value}>{contract.leadTest || "No"}</Text>
           </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>House Type:</Text>
-          </View>
-        </View>
-        <View style={{ flexDirection: "row" }}>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>{contract.customerPhone || ""}</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>{contract.customerEmail || ""}</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>{contract.leadTest || ""}</Text>
-          </View>
-          <View style={[sharedStyles.tableCell, { width: "25%" }]}>
-            <Text>{contract.houseType || ""}</Text>
+          <View style={[salesContractStyles.gridCell, { borderRightWidth: 1 }]}>
+            <Text style={salesContractStyles.label}>Sales Rep:</Text>
+            <Text style={salesContractStyles.value}>{contract.salesman || ""}</Text>
           </View>
         </View>
       </View>
 
       {/* Cancellation Notice */}
-      <View style={[sharedStyles.borderedBoxBold, { marginBottom: 10, backgroundColor: "#f5f5f5" }]}>
-        <Text style={[sharedStyles.bold, { marginBottom: 3 }]}>CANCELLATION NOTICE:</Text>
-        <Text style={[sharedStyles.textSm, { lineHeight: 1.2 }]}>
-          YOU, THE BUYER, MAY CANCEL THIS CONTRACT AT ANY TIME PRIOR TO MIDNIGHT OF THE THIRD BUSINESS DAY AFTER THE
-          SALE. IF YOU CANCEL, ANY PAYMENTS MADE BY YOU UNDER THE CONTRACT WILL BE RETURNED WITHIN 10 BUSINESS DAYS
-          FOLLOWING RECEIPT OF YOUR CANCELLATION NOTICE. TO CANCEL THIS CONTRACT, MAIL OR DELIVER A SIGNED AND DATED
-          COPY OF YOUR CANCELLATION NOTICE OR ANY OTHER WRITTEN NOTICE TO:
+      <View style={salesContractStyles.noticeBox}>
+        <Text style={salesContractStyles.noticeText}>
+          YOU, THE BUYER, MAY CANCEL THIS CONTRACT AT ANY TIME PRIOR TO MIDNIGHT OF THE THIRD
+          BUSINESS DAY AFTER THE DATE OF THE TRANSACTION OR RECEIPT OF THE PRODUCT, WHICHEVER IS
+          LATER.
         </Text>
-        <Text style={[sharedStyles.bold, { marginTop: 3 }]}>
-          {contract.customerCity?.toLowerCase().includes("phoenix") ||
-           contract.customerState?.toLowerCase().includes("az")
-            ? "Advanced Windows Direct, 2451 S 600 W STE 500, Salt Lake City, UT 84115"
-            : "3052 South 460 West, South Salt Lake, UT 84115"}
+        <Text style={salesContractStyles.noticeText}>
+          To cancel this transaction, deliver, mail, or email a signed and dated written notice to:
         </Text>
-        <Text style={[sharedStyles.bold, { marginTop: 1 }]}>Email: cancellations@advancedwindows.com</Text>
+        <Text style={salesContractStyles.noticeText}>Advanced Windows Direct</Text>
+        <Text style={salesContractStyles.noticeText}>3052 South 460 West, South Salt Lake, UT 84115</Text>
+        <Text style={salesContractStyles.noticeText}>cancellations@advancedwindows.com</Text>
       </View>
 
       {/* Line Items Table */}
-      <View style={sharedStyles.table}>
-        <View style={{ flexDirection: "row" }}>
-          <Text style={[sharedStyles.tableHeader, { width: "9%" }]}>Loc</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "7%" }]}>Type</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "8%" }]}>Size</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "7%" }]}>Net Sz</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "6%" }]}>Fin</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "8%" }]}>Color</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "7%" }]}>Glass</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "5%" }]}>Tmp</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "5%" }]}>OBS</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "8%" }]}>Grid</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "6%" }]}>Strm</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "5%" }]}>Wrp</Text>
-          <Text style={[sharedStyles.tableHeader, { width: "19%" }]}>Operation</Text>
+      <View style={salesContractStyles.tableContainer}>
+        {/* Header */}
+        <View style={salesContractStyles.tableHeader}>
+          <Text style={[salesContractStyles.th, { width: "9%" }]}>Location</Text>
+          <Text style={[salesContractStyles.th, { width: "7%" }]}>Type</Text>
+          <Text style={[salesContractStyles.th, { width: "8%" }]}>Size</Text>
+          <Text style={[salesContractStyles.th, { width: "7%" }]}>Net Size</Text>
+          <Text style={[salesContractStyles.th, { width: "6%" }]}>Fin</Text>
+          <Text style={[salesContractStyles.th, { width: "8%" }]}>Color</Text>
+          <Text style={[salesContractStyles.th, { width: "8%" }]}>Glass Type</Text>
+          <Text style={[salesContractStyles.th, { width: "4%" }]}>Temp</Text>
+          <Text style={[salesContractStyles.th, { width: "4%" }]}>OBS</Text>
+          <Text style={[salesContractStyles.th, { width: "6%" }]}>Grid</Text>
+          <Text style={[salesContractStyles.th, { width: "5%" }]}>Storms</Text>
+          <Text style={[salesContractStyles.th, { width: "5%" }]}>Wraps</Text>
+          <Text style={[salesContractStyles.th, { width: "13%" }]}>Operation</Text>
         </View>
-        {(contract.lineItems || []).map((item, i) => (
-          <View key={i} style={{ flexDirection: "row", borderBottom: "0.5px solid #ddd" }}>
-            <View style={[sharedStyles.tableCellSm, { width: "9%" }]}>
-              <Text>{item.location || ""}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "7%" }]}>
-              <Text>{item.type}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "8%" }]}>
-              <Text>{feetInchesFormat(item.width)} x {feetInchesFormat(item.height)}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "7%" }]}>
-              <Text>{feetInchesFormat(item.width)} x {feetInchesFormat(item.height)}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "6%" }]}>
-              <Text>{item.frame === "Nail Fin" ? "Nail Fin" : (item.frame || "Nail Fin").substring(0, 3)}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "8%" }]}>
-              <Text>{item.color.substring(0, 6)}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "7%" }]}>
-              <Text>{item.glassType ? item.glassType.substring(0, 4) : ""}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "5%" }]}>
-              <Text>{item.temperedGlass ? "Yes" : "No"}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "5%" }]}>
-              <Text>{item.obscuredGlass ? "Yes" : "No"}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "8%" }]}>
-              <Text>{item.gridType ? item.gridType.substring(0, 5) : "—"}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "6%" }]}>
-              <Text>{item.coated ? "Yes" : "No"}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "5%" }]}>
-              <Text>{item.wrap ? "Yes" : "No"}</Text>
-            </View>
-            <View style={[sharedStyles.tableCellSm, { width: "19%" }]}>
-              <Text>{item.operation || ""}</Text>
-            </View>
+
+        {/* Data Rows */}
+        {(contract.lineItems || []).map((item, idx) => (
+          <View key={item.id || idx} style={salesContractStyles.tableRow}>
+            <Text style={[salesContractStyles.td, { width: "9%" }]}>{item.location || ""}</Text>
+            <Text style={[salesContractStyles.td, { width: "7%" }]}>{item.type}</Text>
+            <Text style={[salesContractStyles.td, { width: "8%" }]}>
+              {feetInchesFormat(item.width)} x {feetInchesFormat(item.height)}
+            </Text>
+            <Text style={[salesContractStyles.td, { width: "7%" }]}>
+              {feetInchesFormat(item.width)} x {feetInchesFormat(item.height)}
+            </Text>
+            <Text style={[salesContractStyles.td, { width: "6%" }]}>{item.frame || ""}</Text>
+            <Text style={[salesContractStyles.td, { width: "8%" }]}>{item.color}</Text>
+            <Text style={[salesContractStyles.td, { width: "8%" }]}>{item.glassType || ""}</Text>
+            <Text style={[salesContractStyles.td, { width: "4%" }]}>{checkbox(item.temperedGlass)}</Text>
+            <Text style={[salesContractStyles.td, { width: "4%" }]}>{checkbox(item.obscuredGlass)}</Text>
+            <Text style={[salesContractStyles.td, { width: "6%" }]}>{item.gridType || ""}</Text>
+            <Text style={[salesContractStyles.td, { width: "5%" }]}>
+              {checkbox(item.type?.toLowerCase().includes("storm"))}
+            </Text>
+            <Text style={[salesContractStyles.td, { width: "5%" }]}>{checkbox(item.wrap)}</Text>
+            <Text style={[salesContractStyles.td, { width: "13%" }]}>{getOperationDisplay(item)}</Text>
           </View>
         ))}
       </View>
 
       {/* Bottom Section */}
-      <View style={{ flexDirection: "row", marginTop: 10 }}>
+      <View style={salesContractStyles.bottomSection}>
         {/* Left - Totals */}
-        <View style={{ width: "50%" }}>
-          <View style={[sharedStyles.borderedBox, { height: "100%" }]}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 3 }}>
-              <Text>Contract Total:</Text>
-              <Text>{formatCurrencyPdf(contract.contractTotal)}</Text>
-            </View>
-            {contract.downPayment > 0 && (
-              <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 3 }}>
-                <Text>Down Payment ({downPaymentPercent(contract.downPayment, contract.contractTotal)}):</Text>
-                <Text>{formatCurrencyPdf(contract.downPayment)}</Text>
-              </View>
-            )}
-            <View style={[{ flexDirection: "row", justifyContent: "space-between", marginTop: 5, paddingTop: 5, borderTop: "1px solid #333" }]}>
-              <Text style={[sharedStyles.bold]}>Balance Due at Installation:</Text>
-              <Text style={[sharedStyles.bold, { fontSize: 10 }]}>{formatCurrencyPdf(contract.balanceDue)}</Text>
-            </View>
-            <View style={{ marginTop: 5 }}>
-              <Text style={sharedStyles.textSm}>Method of Payment: {contract.paymentMethod || ""}</Text>
-            </View>
+        <View style={salesContractStyles.totalsBox}>
+          <View style={salesContractStyles.totalRow}>
+            <Text style={salesContractStyles.totalLabel}>Contract Total:</Text>
+            <Text style={salesContractStyles.totalValue}>{formatCurrencyPdf(contract.contractTotal)}</Text>
+          </View>
+          <View style={salesContractStyles.totalRow}>
+            <Text style={salesContractStyles.totalLabel}>
+              Down Payment ({downPaymentPercent(contract.downPayment, contract.contractTotal)}):
+            </Text>
+            <Text style={salesContractStyles.totalValue}>{formatCurrencyPdf(contract.downPayment)}</Text>
+          </View>
+          <View style={salesContractStyles.totalRow}>
+            <Text style={[salesContractStyles.totalLabel, salesContractStyles.bold]}>Balance Due at Installation:</Text>
+            <Text style={[salesContractStyles.totalValue, salesContractStyles.bold]}>
+              {formatCurrencyPdf(contract.balanceDue)}
+            </Text>
+          </View>
+          <View style={[salesContractStyles.totalRow, { marginTop: 8 }]}>
+            <Text style={salesContractStyles.totalLabel}>Method of Payment:</Text>
+            <Text style={salesContractStyles.totalValue}>{contract.paymentMethod || ""}</Text>
           </View>
         </View>
 
         {/* Right - Acknowledgement and Signatures */}
-        <View style={{ width: "45%", marginLeft: "5%" }}>
-          <Text style={[sharedStyles.textSm, { marginBottom: 8, lineHeight: 1.2 }]}>
-            Customer acknowledges receipt of a copy of this contract and agrees to all terms and conditions.
-            Customer understands that products are custom made and cannot be returned.
+        <View style={salesContractStyles.signatureSection}>
+          <Text style={[salesContractStyles.textSm, { marginBottom: 10, textAlign: "center" }]}>
+            Customer acknowledges receipt of and agreement to all Terms and Conditions
+            contained in this Contract, including those on subsequent pages.
           </Text>
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1 }}>
-              <SignatureBlock
-                label="Customer Signature"
-                signature={contract.customerSignature}
-                date={contract.customerSignatureDate}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <SignatureBlock
-                label="Sales Rep Signature"
-                signature={contract.contractorSignature}
-                date={contract.contractorSignatureDate}
-              />
-            </View>
+
+          <View style={{ marginBottom: 15 }}>
+            <View style={salesContractStyles.signatureLine} />
+            <Text style={salesContractStyles.signatureLabel}>Customer Signature</Text>
+            <Text style={salesContractStyles.signatureLabel}>Date: _____________</Text>
+          </View>
+
+          <View>
+            <View style={salesContractStyles.signatureLine} />
+            <Text style={salesContractStyles.signatureLabel}>Sales Representative Signature</Text>
+            <Text style={salesContractStyles.signatureLabel}>Date: _____________</Text>
           </View>
         </View>
       </View>
-
-      <PacketFooter />
     </Page>
   );
 }
+
+const salesContractStyles = {
+  header: {
+    marginBottom: 15,
+  },
+  headerTitle: {
+    fontSize: 11,
+    fontWeight: "bold",
+    textAlign: "right" as const,
+    color: "#1a365d",
+  },
+  headerInfo: {
+    fontSize: 8,
+    textAlign: "right" as const,
+    color: "#333",
+  },
+  pageTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#1a365d",
+  },
+  customerGrid: {
+    borderWidth: 1,
+    borderColor: "#000",
+    marginBottom: 15,
+  },
+  gridRow: {
+    flexDirection: "row" as const,
+    borderBottomWidth: 1,
+    borderBottomColor: "#000",
+    minHeight: 28,
+  },
+  gridCell: {
+    flex: 1,
+    padding: 4,
+    borderRightWidth: 1,
+    borderRightColor: "#000",
+    justifyContent: "center" as const,
+  },
+  label: {
+    fontSize: 7,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  value: {
+    fontSize: 8,
+  },
+  noticeBox: {
+    borderWidth: 1,
+    borderColor: "#000",
+    padding: 10,
+    marginBottom: 15,
+  },
+  noticeText: {
+    fontSize: 9,
+    lineHeight: 1.3,
+    marginBottom: 3,
+  },
+  tableContainer: {
+    borderWidth: 1,
+    borderColor: "#000",
+    marginBottom: 15,
+  },
+  tableHeader: {
+    flexDirection: "row" as const,
+    backgroundColor: "#1a365d",
+    padding: 4,
+  },
+  th: {
+    fontSize: 6,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center" as const,
+  },
+  tableRow: {
+    flexDirection: "row" as const,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#999",
+    minHeight: 24,
+  },
+  td: {
+    fontSize: 7,
+    padding: 3,
+    borderRightWidth: 0.5,
+    borderRightColor: "#999",
+    textAlign: "center" as const,
+  },
+  bottomSection: {
+    flexDirection: "row" as const,
+    gap: 15,
+  },
+  totalsBox: {
+    width: "40%",
+    borderWidth: 1,
+    borderColor: "#000",
+    padding: 10,
+  },
+  totalRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    marginBottom: 5,
+  },
+  totalLabel: {
+    fontSize: 9,
+  },
+  totalValue: {
+    fontSize: 9,
+  },
+  signatureSection: {
+    flex: 1,
+  },
+  signatureLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#000",
+    height: 30,
+    marginBottom: 3,
+  },
+  signatureLabel: {
+    fontSize: 8,
+  },
+  textSm: {
+    fontSize: 8,
+  },
+  bold: {
+    fontWeight: "bold",
+  },
+};

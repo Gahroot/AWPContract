@@ -25,10 +25,10 @@ export async function POST(_req: NextRequest) {
     const success = await testConnection(setting.value);
     return NextResponse.json({ success });
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Connection failed";
+    console.error("HubSpot connection test error:", e);
     return NextResponse.json({
       success: false,
-      error: message,
+      error: "HubSpot connection test failed",
     });
   }
 }

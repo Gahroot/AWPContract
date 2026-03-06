@@ -306,6 +306,9 @@ export function buildDealProperties(contract: ContractData): Record<string, stri
     sales_rep: contract.salesman || "",
     measured_by: contract.measuredBy || "",
     preferred_communication_method: contract.preferredCommunication || "",
+    lead_test: contract.leadTest || "",
+    plan_number: contract.planNumber || "",
+    auth_number: contract.authNumber || "",
     // Home
     year_home_was_built: contract.yearBuilt || "",
     // Contract

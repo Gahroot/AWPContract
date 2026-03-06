@@ -9,7 +9,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { addendumId } = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+  const { addendumId } = body;
 
   if (!addendumId) {
     return NextResponse.json(
@@ -93,7 +97,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, noteId: result.noteId });
   } catch (e: unknown) {
     console.error("HubSpot addendum sync error:", e);
-    const message = e instanceof Error ? e.message : "HubSpot sync failed";
     return NextResponse.json({ error: "HubSpot sync failed" }, { status: 500 });
   }
 }
