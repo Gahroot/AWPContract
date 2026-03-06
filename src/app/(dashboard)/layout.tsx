@@ -68,12 +68,16 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                "relative flex items-center gap-3 px-3 py-2 rounded-r-md text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-muted-foreground hover:bg-awp-blue-light hover:text-awp-blue"
+                  ? "text-white"
+                  : "text-white/70 hover:bg-white/5 hover:text-white"
               )}
             >
+              {/* Orange vertical bar on left edge for active state */}
+              {isActive && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1.5 rounded-r-full bg-awp-orange" />
+              )}
               <Icon className="h-4 w-4" />
               {item.label}
             </Link>
@@ -86,8 +90,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             <button
               onClick={() => setAdminExpanded(!adminExpanded)}
               className={cn(
-                "flex items-center justify-between w-full gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                "text-muted-foreground hover:bg-awp-blue-light hover:text-awp-blue"
+                "flex items-center justify-between w-full gap-3 px-3 py-2 rounded-r-md text-sm font-medium transition-colors",
+                "text-white/70 hover:bg-white/5 hover:text-white"
               )}
             >
               <div className="flex items-center gap-3">
@@ -119,12 +123,16 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       href={item.href}
                       onClick={onNavigate}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                        "relative flex items-center gap-3 px-3 py-2 rounded-r-md text-sm font-medium transition-colors",
                         isActive
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                          : "text-muted-foreground hover:bg-awp-blue-light hover:text-awp-blue"
+                          ? "text-white"
+                          : "text-white/70 hover:bg-white/5 hover:text-white"
                       )}
                     >
+                      {/* Orange vertical bar on left edge for active state */}
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1.5 rounded-r-full bg-awp-orange" />
+                      )}
                       <Icon className="h-4 w-4" />
                       {item.label}
                     </Link>
@@ -139,8 +147,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       {/* User Info at Bottom */}
       <Separator />
       <div className="p-4">
-        <div className="text-sm font-medium">{session?.user?.name || "User"}</div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-sm font-medium text-white">{session?.user?.name || "User"}</div>
+        <div className="text-xs text-white/70">
           {session?.user?.role === "ADMIN" ? "Admin" : "Salesman"}
         </div>
       </div>
@@ -159,7 +167,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen flex">
       {/* Desktop sidebar - hidden on mobile and tablet */}
-      <aside className="hidden 2xl:flex 2xl:w-64 2xl:flex-col border-r bg-background">
+      <aside className="hidden 2xl:flex 2xl:w-64 2xl:flex-col border-r" style={{ backgroundColor: 'var(--sidebar)' }}>
         <Sidebar />
       </aside>
 
@@ -173,7 +181,7 @@ export default function DashboardLayout({
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-64">
+              <SheetContent side="left" className="p-0 w-64" style={{ backgroundColor: 'var(--sidebar)' }}>
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <Sidebar onNavigate={() => setSheetOpen(false)} />
               </SheetContent>

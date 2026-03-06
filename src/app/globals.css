@@ -55,7 +55,7 @@
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: #f8f9fa;
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -76,16 +76,17 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #174881;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: #174881;
+  /* Sidebar - deep navy blue background */
+  --sidebar: #1e3a8a;
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: rgba(255, 255, 255, 0.1);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: rgba(255, 255, 255, 0.05);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #F69139;
   /* AWP brand colors */
-  --awp-blue: #174881;
+  --awp-blue: #1e3a8a;
   --awp-blue-light: #e8eff7;
   --awp-orange: #F69139;
   --awp-orange-text: #b45309;
@@ -116,16 +117,17 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: #1d5a9e;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #174881;
+  /* Keep sidebar blue in dark mode too */
+  --sidebar: #1e3a8a;
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: rgba(255, 255, 255, 0.1);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: rgba(255, 255, 255, 0.05);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #F69139;
   /* AWP brand colors (dark mode) */
-  --awp-blue: #1d5a9e;
+  --awp-blue: #1e3a8a;
   --awp-blue-light: #1e3a5c;
   --awp-orange: #F69139;
   --awp-orange-text: #F69139;
