@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,6 +84,8 @@ interface Invite {
 }
 
 export default function TeamManagementPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
   const [users, setUsers] = useState<User[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,25 +104,28 @@ export default function TeamManagementPage() {
 
   async function fetchData() {
     try {
-      const [usersRes, invitesRes, terrRes] = await Promise.all([
-        fetch("/api/users"),
-        fetch("/api/invites"),
-        fetch("/api/users/territories"),
-      ]);
+      const usersRes = await fetch("/api/users");
       if (usersRes.ok) setUsers(await usersRes.json());
-      if (invitesRes.ok) setInvites(await invitesRes.json());
-      if (terrRes.ok) {
-        const territories = await terrRes.json();
-        setTerritoryOptions(territories.map((t: { id: string; name: string }) => ({ id: t.id, name: t.name })));
+
+      // Only fetch admin-specific data for admins
+      if (isAdmin) {
+        const [invitesRes, terrRes] = await Promise.all([
+          fetch("/api/invites"),
+          fetch("/api/users/territories"),
+        ]);
+        if (invitesRes.ok) setInvites(await invitesRes.json());
+        if (terrRes.ok) {
+          const territories = await terrRes.json();
+          setTerritoryOptions(territories.map((t: { id: string; name: string }) => ({ id: t.id, name: t.name })));
+        }
       }
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchData(); }, [isAdmin]);
 
   async function toggleRole(userId: string, field: string, value: boolean) {
     const res = await fetch(`/api/users/${userId}/roles`, {
@@ -273,7 +279,7 @@ export default function TeamManagementPage() {
         <CardHeader>
           <CardTitle>Team Members</CardTitle>
           <CardDescription>
-            Manage user roles and commission management flags.
+            {isAdmin ? "Manage user roles and commission management flags." : "View your team members."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -283,13 +289,12 @@ export default function TeamManagementPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Market</TableHead>
-                <TableHead className="text-center">Setter Mgr</TableHead>
-                <TableHead className="text-center">Territory</TableHead>
-                <TableHead className="text-center">VP</TableHead>
-                <TableHead className="text-center">NSM</TableHead>
+                {isAdmin && <TableHead className="text-center">Setter Mgr</TableHead>}
+                {isAdmin && <TableHead className="text-center">Terr. Owner</TableHead>}
+                {isAdmin && <TableHead className="text-center">VP</TableHead>}
+                {isAdmin && <TableHead className="text-center">NSM</TableHead>}
                 <TableHead>Territory</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -310,67 +315,80 @@ export default function TeamManagementPage() {
                       {user.role}
                     </Badge>
                   </TableCell>
-                  <TableCell>{user.market}</TableCell>
-                  <TableCell className="text-center">
-                    <Switch
-                      checked={user.isSetterManager}
-                      onCheckedChange={(v) => toggleRole(user.id, "isSetterManager", v)}
-                    />
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Switch
-                      checked={user.isTerritoryOwner}
-                      onCheckedChange={(v) => toggleRole(user.id, "isTerritoryOwner", v)}
-                    />
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Switch
-                      checked={user.isVP}
-                      onCheckedChange={(v) => toggleRole(user.id, "isVP", v)}
-                    />
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Switch
-                      checked={user.isNSM}
-                      onCheckedChange={(v) => toggleRole(user.id, "isNSM", v)}
-                    />
-                  </TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={user.isSetterManager}
+                        onCheckedChange={(v) => toggleRole(user.id, "isSetterManager", v)}
+                      />
+                    </TableCell>
+                  )}
+                  {isAdmin && (
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={user.isTerritoryOwner}
+                        onCheckedChange={(v) => toggleRole(user.id, "isTerritoryOwner", v)}
+                      />
+                    </TableCell>
+                  )}
+                  {isAdmin && (
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={user.isVP}
+                        onCheckedChange={(v) => toggleRole(user.id, "isVP", v)}
+                      />
+                    </TableCell>
+                  )}
+                  {isAdmin && (
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={user.isNSM}
+                        onCheckedChange={(v) => toggleRole(user.id, "isNSM", v)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
-                    <TerritoryCombobox
-                      value={user.territory}
-                      options={territoryOptions}
-                      onChange={(t) => updateTerritory(user.id, t)}
-                      placeholder={user.market}
-                    />
+                    {isAdmin ? (
+                      <TerritoryCombobox
+                        value={user.territory}
+                        options={territoryOptions}
+                        onChange={(t) => updateTerritory(user.id, t)}
+                        placeholder={user.market}
+                      />
+                    ) : (
+                      <span className="text-sm">{user.territory?.name || user.market || "—"}</span>
+                    )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/settings/team/${user.id}`}>
-                            <UserIcon className="h-4 w-4 mr-2" />
-                            View Profile
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link href={`/settings/team/${user.id}#overrides`}>
-                            <Sliders className="h-4 w-4 mr-2" />
-                            Rate Overrides
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleRecalculateUser(user.id)}>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Recalculate Commissions
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/settings/team/${user.id}`}>
+                              <UserIcon className="h-4 w-4 mr-2" />
+                              View Profile
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/settings/team/${user.id}#overrides`}>
+                              <Sliders className="h-4 w-4 mr-2" />
+                              Rate Overrides
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleRecalculateUser(user.id)}>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Recalculate Commissions
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -378,8 +396,8 @@ export default function TeamManagementPage() {
         </CardContent>
       </Card>
 
-      {/* Invitations */}
-      <Card>
+      {/* Invitations (admin only) */}
+      {isAdmin && <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Invitations</CardTitle>
@@ -618,7 +636,7 @@ export default function TeamManagementPage() {
             </Table>
           )}
         </CardContent>
-      </Card>
+      </Card>}
     </div>
   );
 }
