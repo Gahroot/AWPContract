@@ -67,7 +67,7 @@ export async function PATCH(
     // Recalculate pricing
     let total = 0;
     const processedItems = (lineItems || []).map(
-      (item: LineItemInput & { location?: string; sortOrder?: number; type?: string }, index: number) => {
+      (item: LineItemInput & { location?: string; sortOrder?: number; type?: string; gridVerticalLines?: number; gridHorizontalLines?: number; gridPatternNotes?: string }, index: number) => {
         const price = calculateLineItem(item);
         total += price;
         return {
@@ -86,6 +86,13 @@ export async function PATCH(
           wrap: item.wrap || false,
           coated: item.coated || false,
           awpShutterRnr: item.awpShutterRnr || false,
+          productCode: item.productCode || null,
+          operation: item.operation || null,
+          gridType: item.gridType || null,
+          glassType: item.glassType || null,
+          gridVerticalLines: item.gridVerticalLines ?? 0,
+          gridHorizontalLines: item.gridHorizontalLines ?? 0,
+          gridPatternNotes: item.gridPatternNotes || null,
           price,
           sortOrder: item.sortOrder ?? index,
         };
@@ -159,9 +166,26 @@ export async function PATCH(
           salesRepId: contractData.salesRepId ?? undefined,
           setterId: contractData.setterId !== undefined ? (contractData.setterId || null) : undefined,
           measurementNotes: contractData.measurementNotes ?? undefined,
+          installByAWD: contractData.installByAWD ?? undefined,
+          measurementsTakenBy: contractData.measurementsTakenBy ?? undefined,
+          hasShutters: contractData.hasShutters ?? undefined,
+          removalWindows: contractData.removalWindows !== undefined
+            ? parseInt(contractData.removalWindows) || 0
+            : undefined,
+          removalDoors: contractData.removalDoors !== undefined
+            ? parseInt(contractData.removalDoors) || 0
+            : undefined,
+          typeComingOut: contractData.typeComingOut ?? undefined,
+          windowsComingOutOf: contractData.windowsComingOutOf ?? undefined,
+          referredBy: contractData.referredBy ?? undefined,
+          referralName: contractData.referralName ?? undefined,
           contractorSignature: contractData.contractorSignature ?? undefined,
           contractorSignatureDate: contractData.contractorSignatureDate
             ? new Date(contractData.contractorSignatureDate)
+            : undefined,
+          authorizedSignature: contractData.authorizedSignature ?? undefined,
+          authorizedSignatureDate: contractData.authorizedSignatureDate
+            ? new Date(contractData.authorizedSignatureDate)
             : undefined,
           customerSignature: contractData.customerSignature ?? undefined,
           customerSignatureDate: contractData.customerSignatureDate

@@ -51,7 +51,10 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   const parseDate = (v: string | undefined | null) => {
     if (!v) return null;
@@ -82,6 +85,7 @@ export async function POST(
       ackPricing: body.ackPricing || false,
       ackTerms: body.ackTerms || false,
       ackInitials: body.ackInitials || null,
+      hasInteriorShutters: body.hasInteriorShutters || false,
       referralName: body.referralName || null,
       referralPhone: body.referralPhone || null,
       notes: body.notes || null,

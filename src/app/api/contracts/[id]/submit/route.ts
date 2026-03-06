@@ -41,7 +41,7 @@ export async function POST(
   // Server-side price validation
   let serverTotal = 0;
   const processedItems = lineItems.map(
-    (item: LineItemInput & { location?: string; sortOrder?: number; price?: number; type?: string }, index: number) => {
+    (item: LineItemInput & { location?: string; sortOrder?: number; price?: number; type?: string; gridVerticalLines?: number; gridHorizontalLines?: number; gridPatternNotes?: string }, index: number) => {
       const serverPrice = calculateLineItem(item);
       serverTotal += serverPrice;
 
@@ -72,6 +72,9 @@ export async function POST(
         operation: item.operation || null,
         gridType: item.gridType || null,
         glassType: item.glassType || null,
+        gridVerticalLines: item.gridVerticalLines ?? 0,
+        gridHorizontalLines: item.gridHorizontalLines ?? 0,
+        gridPatternNotes: item.gridPatternNotes || null,
         price: serverPrice,
         sortOrder: item.sortOrder ?? index,
       };
@@ -132,6 +135,15 @@ export async function POST(
         foundationApplicationQty: contractData.foundationApplicationQty,
         woodApplicationQty: contractData.woodApplicationQty,
         measurementNotes: contractData.measurementNotes || null,
+        installByAWD: contractData.installByAWD ?? false,
+        measurementsTakenBy: contractData.measurementsTakenBy || null,
+        hasShutters: contractData.hasShutters ?? false,
+        removalWindows: contractData.removalWindows ?? 0,
+        removalDoors: contractData.removalDoors ?? 0,
+        typeComingOut: contractData.typeComingOut || null,
+        windowsComingOutOf: contractData.windowsComingOutOf ?? undefined,
+        referredBy: contractData.referredBy || null,
+        referralName: contractData.referralName || null,
         contractorSignature: contractData.contractorSignature,
         contractorSignatureDate: contractData.contractorSignatureDate
           ? new Date(contractData.contractorSignatureDate)
@@ -162,7 +174,7 @@ export async function POST(
   // Generate PDF
   try {
     const { generateAndSavePdf } = await import("@/lib/pdf");
-    const url = await generateAndSavePdf(contract);
+    const url = await generateAndSavePdf(contract as Parameters<typeof generateAndSavePdf>[0]);
     await db.contract.update({ where: { id }, data: { pdfUrl: url } });
   } catch (e) {
     console.error("PDF generation failed:", e);
@@ -172,7 +184,7 @@ export async function POST(
   let hubspotSynced = false;
   try {
     const { syncContractToHubSpot } = await import("@/lib/hubspot");
-    const result = await syncContractToHubSpot(contract);
+    const result = await syncContractToHubSpot(contract as Parameters<typeof syncContractToHubSpot>[0]);
     hubspotSynced = result !== null;
   } catch (e) {
     console.error("HubSpot sync failed:", e);

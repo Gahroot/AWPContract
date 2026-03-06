@@ -41,6 +41,7 @@ export async function POST(
     data: {
       customerSignature: body.customerSignature,
       customerSignatureDate: new Date(),
+      customerAcceptedTerms: true,
       paymentMethod: body.paymentMethod || null,
       status: "SIGNED",
     },

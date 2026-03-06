@@ -37,46 +37,66 @@ export async function GET(req: NextRequest) {
     where.userId = session.user.id;
   }
 
-  const [contracts, total, draft, pendingSignature, completed] =
-    await Promise.all([
-      db.contract.findMany({
-        where,
-        select: {
-          id: true,
-          contractNumber: true,
-          customerName: true,
-          jobAddress: true,
-          contractTotal: true,
-          status: true,
-          createdAt: true,
-          hubspotSyncStatus: true,
-          hubspotLastSynced: true,
-          hubspotSyncError: true,
-        },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      db.contract.count({ where }),
-      db.contract.count({
-        where: { ...where, status: "DRAFT" },
-      }),
-      db.contract.count({
-        where: { ...where, status: "PENDING_SIGNATURE" },
-      }),
-      db.contract.count({
-        where: { ...where, status: "COMPLETED" },
-      }),
-    ]);
+  const [
+    contracts,
+    total,
+    inHubSpot,
+    pendingHubSpot,
+    totalWonValue,
+    totalUnits,
+    commissionable,
+  ] = await Promise.all([
+    db.contract.findMany({
+      where,
+      select: {
+        id: true,
+        contractNumber: true,
+        customerName: true,
+        jobAddress: true,
+        contractTotal: true,
+        status: true,
+        createdAt: true,
+        hubspotSyncStatus: true,
+        hubspotLastSynced: true,
+        hubspotSyncError: true,
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    db.contract.count({ where }),
+    db.contract.count({
+      where: { ...where, hubspotSyncStatus: "SYNCED" },
+    }),
+    db.contract.count({
+      where: { ...where, OR: [{ hubspotSyncStatus: null }, { hubspotSyncStatus: "PENDING" }, { hubspotSyncStatus: "FAILED" }] },
+    }),
+    // Sum of contractTotal for completed contracts
+    db.contract.aggregate({
+      where: { ...where, status: "COMPLETED" },
+      _sum: { contractTotal: true },
+    }),
+    // Sum of all line item quantities
+    db.lineItem.aggregate({
+      where: {
+        contract: where,
+      },
+      _sum: { qty: true },
+    }),
+    db.contract.count({
+      where: { ...where, status: "COMPLETED" },
+    }),
+  ]);
 
   return NextResponse.json({
     contracts,
     total,
     stats: {
-      total,
-      draft,
-      pendingSignature,
-      completed,
+      inHubSpot,
+      pendingHubSpot,
+      totalWonValue: totalWonValue._sum.contractTotal ?? 0,
+      totalUnits: totalUnits._sum.qty ?? 0,
+      commissionable,
     },
   });
 }
@@ -107,7 +127,7 @@ export async function POST(req: NextRequest) {
     // Calculate pricing server-side
     let total = 0;
     const processedItems = (lineItems || []).map(
-      (item: LineItemInput & { location?: string; sortOrder?: number; type?: string }, index: number) => {
+      (item: LineItemInput & { location?: string; sortOrder?: number; type?: string; gridVerticalLines?: number; gridHorizontalLines?: number; gridPatternNotes?: string }, index: number) => {
         const price = calculateLineItem(item);
         total += price;
         return {
@@ -126,6 +146,13 @@ export async function POST(req: NextRequest) {
           wrap: item.wrap || false,
           coated: item.coated || false,
           awpShutterRnr: item.awpShutterRnr || false,
+          productCode: item.productCode || null,
+          operation: item.operation || null,
+          gridType: item.gridType || null,
+          glassType: item.glassType || null,
+          gridVerticalLines: item.gridVerticalLines ?? 0,
+          gridHorizontalLines: item.gridHorizontalLines ?? 0,
+          gridPatternNotes: item.gridPatternNotes || null,
           price,
           sortOrder: item.sortOrder ?? index,
         };
@@ -179,9 +206,22 @@ export async function POST(req: NextRequest) {
         foundationApplicationQty: parseInt(contractData.foundationApplicationQty) || 0,
         woodApplicationQty: parseInt(contractData.woodApplicationQty) || 0,
         measurementNotes: contractData.measurementNotes || null,
+        installByAWD: contractData.installByAWD ?? false,
+        measurementsTakenBy: contractData.measurementsTakenBy || null,
+        hasShutters: contractData.hasShutters ?? false,
+        removalWindows: parseInt(contractData.removalWindows) || 0,
+        removalDoors: parseInt(contractData.removalDoors) || 0,
+        typeComingOut: contractData.typeComingOut || null,
+        windowsComingOutOf: contractData.windowsComingOutOf || null,
+        referredBy: contractData.referredBy || null,
+        referralName: contractData.referralName || null,
         contractorSignature: contractData.contractorSignature || null,
         contractorSignatureDate: contractData.contractorSignatureDate
           ? new Date(contractData.contractorSignatureDate)
+          : null,
+        authorizedSignature: contractData.authorizedSignature || null,
+        authorizedSignatureDate: contractData.authorizedSignatureDate
+          ? new Date(contractData.authorizedSignatureDate)
           : null,
         status: "DRAFT",
         userId: session.user.id,
