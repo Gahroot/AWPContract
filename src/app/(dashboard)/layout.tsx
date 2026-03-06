@@ -6,10 +6,15 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
-  LayoutDashboard,
-  FilePlus,
-  DollarSign,
-  Settings,
+  Home,
+  FileText,
+  BarChart,
+  Trophy,
+  Key,
+  Users,
+  Settings as SettingsIcon,
+  ChevronDown,
+  ChevronUp,
   Menu,
   LogOut,
   User,
@@ -25,16 +30,25 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { motion } from "motion/react";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/contracts/new", label: "New Contract", icon: FilePlus },
-  { href: "/commissions", label: "Commissions", icon: DollarSign },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/contracts", label: "Contracts", icon: FileText },
+  { href: "/commissions", label: "Commission Report", icon: BarChart },
+  { href: "/advanced-league", label: "Advanced League", icon: Trophy },
+  { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const [adminExpanded, setAdminExpanded] = useState(false);
+  const { data: session } = useSession();
+
+  const adminItems = [
+    { href: "/settings", label: "Manage Users", icon: Users },
+    { href: "/commissions/settings", label: "Commission Settings", icon: SettingsIcon },
+  ];
 
   return (
     <div className="flex flex-col h-full">
@@ -45,10 +59,9 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <nav className="flex-1 p-2 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+          const isActive = item.href === "/"
+            ? pathname === "/"
+            : pathname.startsWith(item.href) && pathname !== "/";
           return (
             <Link
               key={item.href}
@@ -66,7 +79,71 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             </Link>
           );
         })}
+
+        {/* Admin Section */}
+        {session?.user?.role === "ADMIN" && (
+          <div className="mt-4">
+            <button
+              onClick={() => setAdminExpanded(!adminExpanded)}
+              className={cn(
+                "flex items-center justify-between w-full gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                "text-muted-foreground hover:bg-awp-blue-light hover:text-awp-blue"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Key className="h-4 w-4" />
+                <span>Admin</span>
+              </div>
+              {adminExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+            <motion.div
+              initial={false}
+              animate={{
+                height: adminExpanded ? "auto" : 0,
+                opacity: adminExpanded ? 1 : 0,
+              }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-1 mt-1 ml-4">
+                {adminItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onNavigate}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-muted-foreground hover:bg-awp-blue-light hover:text-awp-blue"
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+        )}
       </nav>
+
+      {/* User Info at Bottom */}
+      <Separator />
+      <div className="p-4">
+        <div className="text-sm font-medium">{session?.user?.name || "User"}</div>
+        <div className="text-xs text-muted-foreground">
+          {session?.user?.role === "ADMIN" ? "Admin" : "Salesman"}
+        </div>
+      </div>
     </div>
   );
 }
