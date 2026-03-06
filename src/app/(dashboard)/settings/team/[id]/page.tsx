@@ -78,7 +78,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ id: stri
   const [commissions, setCommissions] = useState<any[]>([]);
   const [totalEarned, setTotalEarned] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [savingRoles, setSavingRoles] = useState(false);
+  const [_savingRoles, _setSavingRoles] = useState(false);
   const [savingOverrides, setSavingOverrides] = useState(false);
   const [overrideValues, setOverrideValues] = useState<Record<string, string>>({});
 

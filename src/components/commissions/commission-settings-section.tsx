@@ -40,7 +40,7 @@ export function CommissionSettingsSection({
   onChange,
   defaultOpen = false,
   assignedUsers,
-  helpText,
+  helpText: _helpText,
 }: CommissionSettingsSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
 

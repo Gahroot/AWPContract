@@ -37,8 +37,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { Loader2, UserPlus, Copy, X, ArrowLeft } from "lucide-react";
+import { Loader2, UserPlus, Copy, X, ArrowLeft, MoreHorizontal, RefreshCw, Sliders, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { TerritoryCombobox } from "@/components/shared/territory-combobox";
 
@@ -201,6 +208,24 @@ export default function TeamManagementPage() {
     toast.success("Link copied to clipboard");
   }
 
+  async function handleRecalculateUser(userId: string) {
+    try {
+      const res = await fetch("/api/commissions/recalculate-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Recalculated ${data.succeeded} of ${data.processed} contracts`);
+      } else {
+        toast.error(data.error ?? "Recalculation failed");
+      }
+    } catch {
+      toast.error("Recalculation failed");
+    }
+  }
+
   function handleDialogClose(open: boolean) {
     setDialogOpen(open);
     if (!open) {
@@ -264,6 +289,7 @@ export default function TeamManagementPage() {
                 <TableHead className="text-center">VP</TableHead>
                 <TableHead className="text-center">NSM</TableHead>
                 <TableHead>Territory</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -316,6 +342,34 @@ export default function TeamManagementPage() {
                       onChange={(t) => updateTerritory(user.id, t)}
                       placeholder={user.market}
                     />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/settings/team/${user.id}`}>
+                            <UserIcon className="h-4 w-4 mr-2" />
+                            View Profile
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/settings/team/${user.id}#overrides`}>
+                            <Sliders className="h-4 w-4 mr-2" />
+                            Rate Overrides
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleRecalculateUser(user.id)}>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Recalculate Commissions
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
