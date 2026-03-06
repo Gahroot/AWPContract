@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, CheckCircle, DollarSign, Users } from "lucide-react";
+import { Loader2, CheckCircle, DollarSign, Users, MapPin } from "lucide-react";
 import Link from "next/link";
 
 interface SettingsData {
@@ -191,6 +191,23 @@ export default function SettingsPage() {
             <Button variant="outline">
               <Users className="h-4 w-4 mr-2" />
               Manage Team
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Territories</CardTitle>
+          <CardDescription>
+            Manage sales territories for commission tracking.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/settings/territories">
+            <Button variant="outline">
+              <MapPin className="h-4 w-4 mr-2" />
+              Manage Territories
             </Button>
           </Link>
         </CardContent>

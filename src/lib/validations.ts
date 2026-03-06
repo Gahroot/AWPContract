@@ -195,10 +195,50 @@ export const commissionSettingsSchema = z.object({
 
 export type CommissionSettingsFormValues = z.infer<typeof commissionSettingsSchema>;
 
+// Territory schemas
+export const createTerritorySchema = z.object({
+  name: z.string().min(1, "Territory name is required").max(50),
+  market: z.string().min(1).max(50).default("SLC"),
+});
+
+export type CreateTerritoryValues = z.infer<typeof createTerritorySchema>;
+
+export const updateTerritorySchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  market: z.string().min(1).max(50).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateTerritoryValues = z.infer<typeof updateTerritorySchema>;
+
+// Commission override schemas
+export const commissionOverrideSchema = z.object({
+  commissionType: z.enum([
+    "SALES_REP",
+    "SETTER",
+    "SETTER_MANAGER",
+    "TERRITORY_OWNER",
+    "VP",
+    "NSM",
+  ]),
+  rateOverride: z.coerce.number().min(0).max(1),
+});
+
+export const upsertOverridesSchema = z.object({
+  overrides: z.array(commissionOverrideSchema).min(1),
+});
+
+export type UpsertOverridesValues = z.infer<typeof upsertOverridesSchema>;
+
 // Invite schemas
 export const createInviteSchema = z.object({
   email: z.string().email("Valid email is required"),
   role: z.enum(["ADMIN", "SALESMAN"]).default("SALESMAN"),
+  isSetterManager: z.boolean().default(false),
+  isTerritoryOwner: z.boolean().default(false),
+  isVP: z.boolean().default(false),
+  isNSM: z.boolean().default(false),
+  territoryId: z.string().optional(),
 });
 
 export type CreateInviteValues = z.infer<typeof createInviteSchema>;

@@ -11,9 +11,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, ArrowLeft } from "lucide-react";
 import { CommissionSettingsSection } from "@/components/commissions/commission-settings-section";
+import { RoleWarnings } from "@/components/commissions/role-warnings";
+import Link from "next/link";
+
+interface AssignedUser {
+  name: string | null;
+  email: string;
+}
 
 const DEFAULT_SETTINGS: Record<string, number> = {
   salesRepRate: 0.10,
@@ -47,12 +55,16 @@ export default function CommissionSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [roleUsers, setRoleUsers] = useState<Record<string, AssignedUser[]>>({});
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/commissions/config");
-        const data = await res.json();
+        const [configRes, usersRes] = await Promise.all([
+          fetch("/api/commissions/config"),
+          fetch("/api/users"),
+        ]);
+        const data = await configRes.json();
         if (data.settings) {
           const s = data.settings;
           const merged = { ...DEFAULT_SETTINGS };
@@ -62,6 +74,23 @@ export default function CommissionSettingsPage() {
             }
           }
           setValues(merged);
+        }
+
+        if (usersRes.ok) {
+          const users = await usersRes.json();
+          const grouped: Record<string, AssignedUser[]> = {
+            setterManager: [],
+            territoryOwner: [],
+            vp: [],
+            nsm: [],
+          };
+          for (const u of users) {
+            if (u.isSetterManager) grouped.setterManager.push({ name: u.name, email: u.email });
+            if (u.isTerritoryOwner) grouped.territoryOwner.push({ name: u.name, email: u.email });
+            if (u.isVP) grouped.vp.push({ name: u.name, email: u.email });
+            if (u.isNSM) grouped.nsm.push({ name: u.name, email: u.email });
+          }
+          setRoleUsers(grouped);
         }
       } finally {
         setLoading(false);
@@ -117,98 +146,125 @@ export default function CommissionSettingsPage() {
 
   return (
     <div className="space-y-4 max-w-2xl">
-      <h1 className="text-2xl font-bold">Commission Settings</h1>
-      <p className="text-sm text-muted-foreground">
-        Configure commission rates for all roles. Rates are applied simultaneously
-        when a contract is completed.
-      </p>
+      <div className="flex items-center gap-4">
+        <Link href="/settings">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold">Commission Settings</h1>
+          <p className="text-sm text-muted-foreground">
+            Configure commission rates for all roles. Rates are applied simultaneously
+            when a contract is completed.
+          </p>
+        </div>
+      </div>
 
-      <CommissionSettingsSection
-        title="Sales Rep"
-        description="Commission for the closer on setter-set appointments."
-        defaultOpen
-        fields={[
-          { key: "salesRepRate", label: "Rate (at/above fair price)", type: "percent" },
-          { key: "salesRepRateBelowFair", label: "Rate (below fair price)", type: "percent" },
-          { key: "salesRepFloor", label: "Floor (% of fair price)", type: "multiplier", step: 1 },
-          { key: "salesRepCeiling", label: "Ceiling (% of fair price)", type: "multiplier", step: 1 },
-        ]}
-        values={values}
-        onChange={updateValue}
-      />
+      <RoleWarnings />
 
-      <CommissionSettingsSection
-        title="Setter"
-        description="Commission for the appointment setter (setter-set only)."
-        fields={[
-          { key: "setterRate", label: "Rate", type: "percent" },
-          { key: "setterFloor", label: "Floor (% of fair price)", type: "multiplier", step: 1 },
-        ]}
-        values={values}
-        onChange={updateValue}
-      />
+      <Tabs defaultValue="setter-set">
+        <TabsList>
+          <TabsTrigger value="setter-set">Setter-Set</TabsTrigger>
+          <TabsTrigger value="self-gen">Self-Gen / Traditional</TabsTrigger>
+        </TabsList>
 
-      <CommissionSettingsSection
-        title="Setter Manager"
-        description="Override for setter managers on all contracts."
-        fields={[
-          { key: "setterManagerRate", label: "Rate (at/above fair price)", type: "percent" },
-          { key: "setterManagerRateBelowFair", label: "Rate (below fair price)", type: "percent" },
-        ]}
-        values={values}
-        onChange={updateValue}
-      />
+        <TabsContent value="setter-set" className="space-y-4">
+          <CommissionSettingsSection
+            title="Sales Rep"
+            description="Commission for the closer on setter-set appointments."
+            defaultOpen
+            fields={[
+              { key: "salesRepRate", label: "Rate (at/above fair price)", type: "percent", helpText: "Applied when contract total >= fair price" },
+              { key: "salesRepRateBelowFair", label: "Rate (below fair price)", type: "percent", helpText: "Applied when contract total < fair price" },
+              { key: "salesRepFloor", label: "Floor (% of fair price)", type: "multiplier", step: 1, helpText: "Minimum contract/fair ratio to earn commission" },
+              { key: "salesRepCeiling", label: "Ceiling (% of fair price)", type: "multiplier", step: 1, helpText: "Maximum commissionable revenue cap" },
+            ]}
+            values={values}
+            onChange={updateValue}
+          />
 
-      <CommissionSettingsSection
-        title="Territory Owner"
-        description="Tiered override based on cumulative territory revenue (current year)."
-        fields={[
-          { key: "territoryOwnerRateTier1", label: "Tier 1 Rate", type: "percent" },
-          { key: "territoryOwnerTier2Threshold", label: "Tier 2 Threshold", type: "dollar" },
-          { key: "territoryOwnerRateTier2", label: "Tier 2 Rate", type: "percent" },
-          { key: "territoryOwnerTier3Threshold", label: "Tier 3 Threshold", type: "dollar" },
-          { key: "territoryOwnerRateTier3", label: "Tier 3 Rate", type: "percent" },
-        ]}
-        values={values}
-        onChange={updateValue}
-      />
+          <CommissionSettingsSection
+            title="Setter"
+            description="Commission for the appointment setter (setter-set only)."
+            fields={[
+              { key: "setterRate", label: "Rate", type: "percent", helpText: "Applied on full contract total" },
+              { key: "setterFloor", label: "Floor (% of fair price)", type: "multiplier", step: 1 },
+            ]}
+            values={values}
+            onChange={updateValue}
+          />
 
-      <CommissionSettingsSection
-        title="VP"
-        description="Override for VPs on all contracts."
-        fields={[
-          { key: "vpRate", label: "Rate (at/above fair price)", type: "percent" },
-          { key: "vpRateBelowFair", label: "Rate (below fair price)", type: "percent" },
-        ]}
-        values={values}
-        onChange={updateValue}
-      />
+          <CommissionSettingsSection
+            title="Setter Manager"
+            description="Override for setter managers on all contracts."
+            assignedUsers={roleUsers.setterManager}
+            fields={[
+              { key: "setterManagerRate", label: "Rate (at/above fair price)", type: "percent" },
+              { key: "setterManagerRateBelowFair", label: "Rate (below fair price)", type: "percent" },
+            ]}
+            values={values}
+            onChange={updateValue}
+          />
 
-      <CommissionSettingsSection
-        title="NSM (National Sales Manager)"
-        description="Override for NSM on setter-set contracts."
-        fields={[
-          { key: "nsmRate", label: "Rate (at/above fair price)", type: "percent" },
-          { key: "nsmRateBelowFair", label: "Rate (below fair price)", type: "percent" },
-        ]}
-        values={values}
-        onChange={updateValue}
-      />
+          <CommissionSettingsSection
+            title="Territory Owner"
+            description="Tiered override based on cumulative territory revenue (current year)."
+            assignedUsers={roleUsers.territoryOwner}
+            fields={[
+              { key: "territoryOwnerRateTier1", label: "Tier 1 Rate", type: "percent", helpText: "Base rate before any threshold is met" },
+              { key: "territoryOwnerTier2Threshold", label: "Tier 2 Threshold", type: "dollar", helpText: "Cumulative YTD revenue to unlock Tier 2" },
+              { key: "territoryOwnerRateTier2", label: "Tier 2 Rate", type: "percent" },
+              { key: "territoryOwnerTier3Threshold", label: "Tier 3 Threshold", type: "dollar", helpText: "Cumulative YTD revenue to unlock Tier 3" },
+              { key: "territoryOwnerRateTier3", label: "Tier 3 Rate", type: "percent" },
+            ]}
+            values={values}
+            onChange={updateValue}
+          />
 
-      <CommissionSettingsSection
-        title="Traditional / Self-Gen Sales"
-        description="Rates when the sales rep is also the setter (no separate setter)."
-        fields={[
-          { key: "traditionalSalesRepRate", label: "Sales Rep Rate (at/above fair)", type: "percent" },
-          { key: "traditionalSalesRepRateBelowFair", label: "Sales Rep Rate (below fair)", type: "percent" },
-          { key: "traditionalFloorRate", label: "Floor (% of fair price)", type: "multiplier", step: 1 },
-          { key: "traditionalPriceCeiling", label: "Ceiling (% of fair price)", type: "multiplier", step: 1 },
-          { key: "traditionalNsmOverrideRate", label: "NSM Override Rate (at/above fair)", type: "percent" },
-          { key: "traditionalNsmOverrideRateBelowFair", label: "NSM Override Rate (below fair)", type: "percent" },
-        ]}
-        values={values}
-        onChange={updateValue}
-      />
+          <CommissionSettingsSection
+            title="VP"
+            description="Override for VPs on all contracts."
+            assignedUsers={roleUsers.vp}
+            fields={[
+              { key: "vpRate", label: "Rate (at/above fair price)", type: "percent" },
+              { key: "vpRateBelowFair", label: "Rate (below fair price)", type: "percent" },
+            ]}
+            values={values}
+            onChange={updateValue}
+          />
+
+          <CommissionSettingsSection
+            title="NSM (National Sales Manager)"
+            description="Override for NSM on setter-set contracts."
+            assignedUsers={roleUsers.nsm}
+            fields={[
+              { key: "nsmRate", label: "Rate (at/above fair price)", type: "percent" },
+              { key: "nsmRateBelowFair", label: "Rate (below fair price)", type: "percent" },
+            ]}
+            values={values}
+            onChange={updateValue}
+          />
+        </TabsContent>
+
+        <TabsContent value="self-gen" className="space-y-4">
+          <CommissionSettingsSection
+            title="Traditional / Self-Gen Sales"
+            description="Rates when the sales rep is also the setter (no separate setter)."
+            defaultOpen
+            fields={[
+              { key: "traditionalSalesRepRate", label: "Sales Rep Rate (at/above fair)", type: "percent", helpText: "Higher rate since rep is also the setter" },
+              { key: "traditionalSalesRepRateBelowFair", label: "Sales Rep Rate (below fair)", type: "percent" },
+              { key: "traditionalFloorRate", label: "Floor (% of fair price)", type: "multiplier", step: 1 },
+              { key: "traditionalPriceCeiling", label: "Ceiling (% of fair price)", type: "multiplier", step: 1 },
+              { key: "traditionalNsmOverrideRate", label: "NSM Override Rate (at/above fair)", type: "percent" },
+              { key: "traditionalNsmOverrideRateBelowFair", label: "NSM Override Rate (below fair)", type: "percent" },
+            ]}
+            values={values}
+            onChange={updateValue}
+          />
+        </TabsContent>
+      </Tabs>
 
       <div className="flex gap-3 pt-2">
         <Button onClick={handleSave} disabled={saving}>

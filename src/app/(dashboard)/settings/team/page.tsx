@@ -40,6 +40,12 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, UserPlus, Copy, X, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { TerritoryCombobox } from "@/components/shared/territory-combobox";
+
+interface TerritoryOption {
+  id: string;
+  name: string;
+}
 
 interface User {
   id: string;
@@ -51,7 +57,8 @@ interface User {
   isTerritoryOwner: boolean;
   isVP: boolean;
   isNSM: boolean;
-  territory: string | null;
+  territoryId: string | null;
+  territory: { id: string; name: string } | null;
   createdAt: string;
 }
 
@@ -72,20 +79,32 @@ export default function TeamManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [territoryOptions, setTerritoryOptions] = useState<TerritoryOption[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("SALESMAN");
+  const [inviteStep, setInviteStep] = useState(1);
+  const [inviteSetterMgr, setInviteSetterMgr] = useState(false);
+  const [inviteTerritoryOwner, setInviteTerritoryOwner] = useState(false);
+  const [inviteVP, setInviteVP] = useState(false);
+  const [inviteNSM, setInviteNSM] = useState(false);
+  const [inviteTerritoryId, setInviteTerritoryId] = useState("");
   const [creating, setCreating] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
 
   async function fetchData() {
     try {
-      const [usersRes, invitesRes] = await Promise.all([
+      const [usersRes, invitesRes, terrRes] = await Promise.all([
         fetch("/api/users"),
         fetch("/api/invites"),
+        fetch("/api/users/territories"),
       ]);
       if (usersRes.ok) setUsers(await usersRes.json());
       if (invitesRes.ok) setInvites(await invitesRes.json());
+      if (terrRes.ok) {
+        const territories = await terrRes.json();
+        setTerritoryOptions(territories.map((t: { id: string; name: string }) => ({ id: t.id, name: t.name })));
+      }
     } finally {
       setLoading(false);
     }
@@ -112,17 +131,26 @@ export default function TeamManagementPage() {
     }
   }
 
-  async function updateTerritory(userId: string, territory: string) {
+  async function fetchTerritories() {
+    const res = await fetch("/api/users/territories");
+    if (res.ok) {
+      const territories = await res.json();
+      setTerritoryOptions(territories.map((t: { id: string; name: string }) => ({ id: t.id, name: t.name })));
+    }
+  }
+
+  async function updateTerritory(userId: string, territory: TerritoryOption) {
     const res = await fetch(`/api/users/${userId}/roles`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ territory }),
+      body: JSON.stringify({ territoryId: territory.id }),
     });
     if (res.ok) {
       const updated = await res.json();
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, ...updated } : u))
       );
+      await fetchTerritories();
     }
   }
 
@@ -132,7 +160,15 @@ export default function TeamManagementPage() {
       const res = await fetch("/api/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+        body: JSON.stringify({
+          email: inviteEmail,
+          role: inviteRole,
+          isSetterManager: inviteSetterMgr,
+          isTerritoryOwner: inviteTerritoryOwner,
+          isVP: inviteVP,
+          isNSM: inviteNSM,
+          territoryId: inviteTerritoryId || undefined,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -170,6 +206,12 @@ export default function TeamManagementPage() {
     if (!open) {
       setInviteEmail("");
       setInviteRole("SALESMAN");
+      setInviteStep(1);
+      setInviteSetterMgr(false);
+      setInviteTerritoryOwner(false);
+      setInviteVP(false);
+      setInviteNSM(false);
+      setInviteTerritoryId("");
       setInviteUrl(null);
     }
   }
@@ -228,7 +270,9 @@ export default function TeamManagementPage() {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">
-                    {user.name || "—"}
+                    <Link href={`/settings/team/${user.id}`} className="hover:underline text-primary">
+                      {user.name || "—"}
+                    </Link>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
@@ -266,11 +310,11 @@ export default function TeamManagementPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <Input
+                    <TerritoryCombobox
+                      value={user.territory}
+                      options={territoryOptions}
+                      onChange={(t) => updateTerritory(user.id, t)}
                       placeholder={user.market}
-                      defaultValue={user.territory ?? ""}
-                      className="w-[100px] h-8 text-sm"
-                      onBlur={(e) => updateTerritory(user.id, e.target.value)}
                     />
                   </TableCell>
                 </TableRow>
@@ -323,7 +367,7 @@ export default function TeamManagementPage() {
                     This link expires in 7 days.
                   </p>
                 </div>
-              ) : (
+              ) : inviteStep === 1 ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Email</Label>
@@ -347,18 +391,97 @@ export default function TeamManagementPage() {
                     </Select>
                   </div>
                 </div>
+              ) : inviteStep === 2 ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Territory</Label>
+                    <Select value={inviteTerritoryId || "none"} onValueChange={(v) => setInviteTerritoryId(v === "none" ? "" : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select territory" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {territoryOptions.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-3">
+                    <Label>Management Flags</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-normal">Setter Manager</Label>
+                        <Switch checked={inviteSetterMgr} onCheckedChange={setInviteSetterMgr} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-normal">Territory Owner</Label>
+                        <Switch checked={inviteTerritoryOwner} onCheckedChange={setInviteTerritoryOwner} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-normal">VP</Label>
+                        <Switch checked={inviteVP} onCheckedChange={setInviteVP} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-normal">NSM</Label>
+                        <Switch checked={inviteNSM} onCheckedChange={setInviteNSM} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-lg border p-3 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Email</span>
+                      <span className="font-medium">{inviteEmail}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Role</span>
+                      <span className="font-medium">{inviteRole}</span>
+                    </div>
+                    {inviteTerritoryId && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Territory</span>
+                        <span className="font-medium">{territoryOptions.find(t => t.id === inviteTerritoryId)?.name ?? "—"}</span>
+                      </div>
+                    )}
+                    {(inviteSetterMgr || inviteTerritoryOwner || inviteVP || inviteNSM) && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Flags</span>
+                        <span className="font-medium">
+                          {[inviteSetterMgr && "Setter Mgr", inviteTerritoryOwner && "Territory", inviteVP && "VP", inviteNSM && "NSM"].filter(Boolean).join(", ")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
               {!inviteUrl && (
-                <DialogFooter>
-                  <Button
-                    onClick={handleCreateInvite}
-                    disabled={creating || !inviteEmail}
-                  >
-                    {creating && (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    )}
-                    Create Invite
-                  </Button>
+                <DialogFooter className="flex gap-2">
+                  {inviteStep > 1 && (
+                    <Button variant="outline" onClick={() => setInviteStep(inviteStep - 1)}>
+                      Back
+                    </Button>
+                  )}
+                  {inviteStep < 3 ? (
+                    <Button
+                      onClick={() => setInviteStep(inviteStep + 1)}
+                      disabled={inviteStep === 1 && !inviteEmail}
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleCreateInvite}
+                      disabled={creating || !inviteEmail}
+                    >
+                      {creating && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      )}
+                      Create Invite
+                    </Button>
+                  )}
                 </DialogFooter>
               )}
             </DialogContent>

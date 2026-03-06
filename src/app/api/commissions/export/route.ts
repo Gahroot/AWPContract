@@ -14,9 +14,11 @@ export async function GET(req: NextRequest) {
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
   const userId = searchParams.get("userId");
+  const status = searchParams.get("status");
 
   const where: Prisma.CommissionRecordWhereInput = {};
   if (userId) where.userId = userId;
+  if (status) where.status = status as Prisma.EnumCommissionStatusFilter;
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) where.createdAt.gte = new Date(startDate);
@@ -42,11 +44,15 @@ export async function GET(req: NextRequest) {
   });
 
   const header =
-    "Contract #,Customer,Recipient,Role,Contract Total,Fair Price,Below Fair?,Self-Gen?,Tier,Rate %,Commission Amount,Date";
+    "Contract #,Customer,Recipient,Role,Contract Total,Fair Price,Below Fair?,Self-Gen?,Tier,Rate %,Commission Amount,Status,Approved Date,Paid Date,Date";
   const rows = records.map((r) => {
     const recipient = r.user.name ?? r.user.email;
     const date = r.createdAt.toISOString().split("T")[0];
     const ratePercent = (r.rate * 100).toFixed(2);
+    const approvedDate = r.approvedAt
+      ? r.approvedAt.toISOString().split("T")[0]
+      : "";
+    const paidDate = r.paidAt ? r.paidAt.toISOString().split("T")[0] : "";
     return [
       csvEscape(r.contract.contractNumber),
       csvEscape(r.contract.customerName ?? ""),
@@ -59,6 +65,9 @@ export async function GET(req: NextRequest) {
       r.tierLabel ?? "",
       ratePercent,
       r.amount.toFixed(2),
+      r.status,
+      approvedDate,
+      paidDate,
       date,
     ].join(",");
   });

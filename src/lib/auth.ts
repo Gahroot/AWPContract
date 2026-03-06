@@ -4,11 +4,19 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
+// Session configuration constants
+const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+const SESSION_UPDATE_AGE = 24 * 60 * 60; // 1 day in seconds
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // PrismaAdapter type mismatch with Auth.js v5 - known issue
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   adapter: PrismaAdapter(db) as any,
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: SESSION_MAX_AGE,
+    updateAge: SESSION_UPDATE_AGE,
+  },
   pages: {
     signIn: "/login",
   },

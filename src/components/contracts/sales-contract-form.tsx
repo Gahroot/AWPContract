@@ -21,6 +21,7 @@ import { AutoSaveIndicator } from "@/components/shared/auto-save-indicator";
 import { TermsModal } from "@/components/shared/terms-modal";
 import { LineItemsTable } from "./line-items-table";
 import { PricingSummary } from "./pricing-summary";
+import { CommissionPreview } from "./commission-preview";
 import { useAutoSave } from "@/lib/hooks/use-auto-save";
 import {
   salesContractDraftSchema,
@@ -593,6 +594,9 @@ export function SalesContractForm({
 
         {/* Section 4: Pricing */}
         <PricingSummary changeOrders={changeOrders} />
+
+        {/* Commission Preview (admin only) */}
+        <CommissionPreview />
 
         {/* Section 5: Marketing */}
         <Card>

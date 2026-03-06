@@ -417,3 +417,308 @@ async function generateSalesContractPdf(
   return Buffer.concat(chunks);
 }
 
+// ─── Commission Report PDF ─────────────────────────────────
+
+interface CommissionReportData {
+  startDate: string;
+  endDate: string;
+  totalAmount: number;
+  totalRecords: number;
+  statusSummary: {
+    status: string;
+    amount: number;
+    count: number;
+  }[];
+  perUser: {
+    name: string;
+    totalAmount: number;
+    recordCount: number;
+  }[];
+  records: {
+    contractNumber: string;
+    customerName: string | null;
+    recipientName: string;
+    commissionType: string;
+    rate: number;
+    amount: number;
+    status: string;
+    createdAt: string;
+  }[];
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  SALES_REP: "Sales Rep",
+  SETTER: "Setter",
+  SETTER_MANAGER: "Setter Mgr",
+  TERRITORY_OWNER: "Territory",
+  VP: "VP",
+  NSM: "NSM",
+};
+
+const reportStyles = StyleSheet.create({
+  page: {
+    padding: 30,
+    fontSize: 9,
+    fontFamily: "Helvetica",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 20,
+    borderBottom: "2px solid #333",
+    paddingBottom: 10,
+  },
+  companyName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1a365d",
+  },
+  companyInfo: {
+    fontSize: 8,
+    color: "#666",
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 5,
+    color: "#1a365d",
+  },
+  subtitle: {
+    fontSize: 10,
+    textAlign: "center",
+    marginBottom: 15,
+    color: "#666",
+  },
+  section: {
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: "bold",
+    backgroundColor: "#f0f0f0",
+    padding: 4,
+    marginBottom: 6,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 3,
+    paddingHorizontal: 4,
+  },
+  summaryLabel: {
+    color: "#666",
+  },
+  summaryValue: {
+    fontWeight: "bold",
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#1a365d",
+    color: "#fff",
+    padding: 4,
+    fontSize: 8,
+    fontWeight: "bold",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottom: "0.5px solid #ddd",
+    padding: 3,
+    fontSize: 8,
+  },
+  tableRowAlt: {
+    backgroundColor: "#f9f9f9",
+  },
+  userCol1: { width: "40%" },
+  userCol2: { width: "30%", textAlign: "right" },
+  userCol3: { width: "30%", textAlign: "right" },
+  detCol1: { width: "12%" },
+  detCol2: { width: "16%" },
+  detCol3: { width: "16%" },
+  detCol4: { width: "12%" },
+  detCol5: { width: "10%", textAlign: "right" },
+  detCol6: { width: "12%", textAlign: "right" },
+  detCol7: { width: "10%" },
+  detCol8: { width: "12%" },
+  footer: {
+    position: "absolute",
+    bottom: 20,
+    left: 30,
+    right: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    fontSize: 7,
+    color: "#999",
+  },
+});
+
+function CommissionReportDocument({ data }: { data: CommissionReportData }) {
+  const getStatusAmount = (status: string) =>
+    data.statusSummary.find((s) => s.status === status)?.amount ?? 0;
+  const getStatusCount = (status: string) =>
+    data.statusSummary.find((s) => s.status === status)?.count ?? 0;
+
+  return (
+    <Document>
+      <Page size="LETTER" style={reportStyles.page}>
+        {/* Header */}
+        <View style={reportStyles.header}>
+          <View>
+            <Text style={reportStyles.companyName}>
+              Advanced Window Products
+            </Text>
+            <Text style={reportStyles.companyInfo}>
+              4035 S 500 W, Murray, UT 84123
+            </Text>
+            <Text style={reportStyles.companyInfo}>(801) 505-9622</Text>
+          </View>
+          <View>
+            <Text style={{ fontSize: 8, color: "#666" }}>Commission Report</Text>
+          </View>
+        </View>
+
+        <Text style={reportStyles.title}>COMMISSION REPORT</Text>
+        <Text style={reportStyles.subtitle}>
+          Period: {format(new Date(data.startDate), "MM/dd/yyyy")} -{" "}
+          {format(new Date(data.endDate), "MM/dd/yyyy")}
+        </Text>
+
+        {/* Summary */}
+        <View style={reportStyles.section}>
+          <Text style={reportStyles.sectionTitle}>Summary</Text>
+          <View style={reportStyles.summaryRow}>
+            <Text style={reportStyles.summaryLabel}>Total Commissions:</Text>
+            <Text style={reportStyles.summaryValue}>
+              {formatCurrency(data.totalAmount)}
+            </Text>
+          </View>
+          <View style={reportStyles.summaryRow}>
+            <Text style={reportStyles.summaryLabel}>Total Records:</Text>
+            <Text style={reportStyles.summaryValue}>{data.totalRecords}</Text>
+          </View>
+          <View style={reportStyles.summaryRow}>
+            <Text style={reportStyles.summaryLabel}>
+              Pending: {getStatusCount("PENDING")} records
+            </Text>
+            <Text style={reportStyles.summaryValue}>
+              {formatCurrency(getStatusAmount("PENDING"))}
+            </Text>
+          </View>
+          <View style={reportStyles.summaryRow}>
+            <Text style={reportStyles.summaryLabel}>
+              Approved: {getStatusCount("APPROVED")} records
+            </Text>
+            <Text style={reportStyles.summaryValue}>
+              {formatCurrency(getStatusAmount("APPROVED"))}
+            </Text>
+          </View>
+          <View style={reportStyles.summaryRow}>
+            <Text style={reportStyles.summaryLabel}>
+              Paid: {getStatusCount("PAID")} records
+            </Text>
+            <Text style={reportStyles.summaryValue}>
+              {formatCurrency(getStatusAmount("PAID"))}
+            </Text>
+          </View>
+        </View>
+
+        {/* Per-user summary */}
+        <View style={reportStyles.section}>
+          <Text style={reportStyles.sectionTitle}>Per-User Summary</Text>
+          <View style={reportStyles.tableHeader}>
+            <Text style={reportStyles.userCol1}>Name</Text>
+            <Text style={reportStyles.userCol2}>Records</Text>
+            <Text style={reportStyles.userCol3}>Total Amount</Text>
+          </View>
+          {data.perUser.map((u, i) => (
+            <View
+              key={i}
+              style={[
+                reportStyles.tableRow,
+                i % 2 === 1 ? reportStyles.tableRowAlt : {},
+              ]}
+            >
+              <Text style={reportStyles.userCol1}>{u.name}</Text>
+              <Text style={reportStyles.userCol2}>{u.recordCount}</Text>
+              <Text style={reportStyles.userCol3}>
+                {formatCurrency(u.totalAmount)}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Detail table */}
+        <View style={reportStyles.section}>
+          <Text style={reportStyles.sectionTitle}>Detail Records</Text>
+          <View style={reportStyles.tableHeader}>
+            <Text style={reportStyles.detCol1}>Contract #</Text>
+            <Text style={reportStyles.detCol2}>Customer</Text>
+            <Text style={reportStyles.detCol3}>Recipient</Text>
+            <Text style={reportStyles.detCol4}>Role</Text>
+            <Text style={reportStyles.detCol5}>Rate</Text>
+            <Text style={reportStyles.detCol6}>Amount</Text>
+            <Text style={reportStyles.detCol7}>Status</Text>
+            <Text style={reportStyles.detCol8}>Date</Text>
+          </View>
+          {data.records.map((r, i) => (
+            <View
+              key={i}
+              style={[
+                reportStyles.tableRow,
+                i % 2 === 1 ? reportStyles.tableRowAlt : {},
+              ]}
+            >
+              <Text style={reportStyles.detCol1}>
+                {r.contractNumber.slice(0, 8)}
+              </Text>
+              <Text style={reportStyles.detCol2}>
+                {r.customerName ?? "-"}
+              </Text>
+              <Text style={reportStyles.detCol3}>{r.recipientName}</Text>
+              <Text style={reportStyles.detCol4}>
+                {ROLE_LABELS[r.commissionType] ?? r.commissionType}
+              </Text>
+              <Text style={reportStyles.detCol5}>
+                {(r.rate * 100).toFixed(2)}%
+              </Text>
+              <Text style={reportStyles.detCol6}>
+                {formatCurrency(r.amount)}
+              </Text>
+              <Text style={reportStyles.detCol7}>{r.status}</Text>
+              <Text style={reportStyles.detCol8}>
+                {format(new Date(r.createdAt), "MM/dd/yy")}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Footer */}
+        <View style={reportStyles.footer} fixed>
+          <Text>
+            Generated: {format(new Date(), "MM/dd/yyyy HH:mm")}
+          </Text>
+          <Text
+            render={({ pageNumber, totalPages }) =>
+              `Page ${pageNumber} of ${totalPages}`
+            }
+          />
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
+export async function generateCommissionReportPdf(
+  data: CommissionReportData
+): Promise<Uint8Array> {
+  const stream = await ReactPDF.renderToStream(
+    <CommissionReportDocument data={data} />
+  );
+
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+

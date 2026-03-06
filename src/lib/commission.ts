@@ -24,6 +24,19 @@ export interface CommissionContext {
   setterId: string | null;
 }
 
+export interface CommissionOverrideMap {
+  [key: string]: number; // key = `${userId}:${commissionType}`
+}
+
+interface ManagementUsers {
+  setterManagers: { id: string }[];
+  territoryOwners: { id: string }[];
+  vps: { id: string }[];
+  nsms: { id: string }[];
+  salesRepTerritoryId: string | null;
+  cumulativeRevenue: number;
+}
+
 // ─── Helpers ────────────────────────────────────────────────
 
 function round(n: number): number {
@@ -44,6 +57,10 @@ export function meetsFloor(contractTotal: number, fairPrice: number, floor: numb
 
 export function commissionableRevenue(contractTotal: number, fairPrice: number, ceiling: number): number {
   return Math.min(contractTotal, fairPrice * ceiling);
+}
+
+function overrideKey(userId: string, type: CommissionType): string {
+  return `${userId}:${type}`;
 }
 
 // ─── Default settings (used when no DB row exists) ──────────
@@ -74,19 +91,29 @@ const DEFAULT_SETTINGS: Omit<CommissionSettings, "id" | "createdAt" | "updatedAt
   traditionalNsmOverrideRateBelowFair: 0.0025,
 };
 
-// ─── Main calculation ───────────────────────────────────────
+// ─── Pure preview function (no DB writes) ───────────────────
 
-export async function calculateAllCommissions(
+export function calculateCommissionsPreview(
   ctx: CommissionContext,
-  settings?: Omit<CommissionSettings, "id" | "createdAt" | "updatedAt">
-): Promise<CommissionEntry[]> {
+  s: Omit<CommissionSettings, "id" | "createdAt" | "updatedAt">,
+  mgmt: ManagementUsers,
+  overrides: CommissionOverrideMap = {}
+): CommissionEntry[] {
   const entries: CommissionEntry[] = [];
 
   if (ctx.contractTotal <= 0 || !ctx.salesRepId) return entries;
 
-  const s = settings ?? (await db.commissionSettings.findFirst()) ?? DEFAULT_SETTINGS;
   const selfGen = isSelfGen(ctx.salesRepId, ctx.setterId);
   const belowFair = isBelowFair(ctx.contractTotal, ctx.fairPrice);
+
+  // Helper to apply override
+  function applyOverride(userId: string, type: CommissionType, defaultRate: number): { rate: number; notes?: string } {
+    const key = overrideKey(userId, type);
+    if (overrides[key] !== undefined) {
+      return { rate: overrides[key], notes: "Custom rate override" };
+    }
+    return { rate: defaultRate };
+  }
 
   // 1. Sales Rep / Traditional Sales Rep
   {
@@ -94,9 +121,10 @@ export async function calculateAllCommissions(
     const ceilingVal = selfGen ? s.traditionalPriceCeiling : s.salesRepCeiling;
 
     if (meetsFloor(ctx.contractTotal, ctx.fairPrice, floorVal)) {
-      const rate = selfGen
+      const defaultRate = selfGen
         ? (belowFair ? s.traditionalSalesRepRateBelowFair : s.traditionalSalesRepRate)
         : (belowFair ? s.salesRepRateBelowFair : s.salesRepRate);
+      const { rate, notes } = applyOverride(ctx.salesRepId, "SALES_REP", defaultRate);
       const revenue = commissionableRevenue(ctx.contractTotal, ctx.fairPrice, ceilingVal);
       const amount = round(revenue * rate);
 
@@ -110,6 +138,7 @@ export async function calculateAllCommissions(
         isBelowFair: belowFair,
         isSelfGen: selfGen,
         tierLabel: selfGen ? "Traditional" : undefined,
+        notes,
       });
     }
   }
@@ -117,7 +146,7 @@ export async function calculateAllCommissions(
   // 2. Setter (only if setter-set, not self-gen)
   if (!selfGen && ctx.setterId) {
     if (meetsFloor(ctx.contractTotal, ctx.fairPrice, s.setterFloor)) {
-      const rate = s.setterRate;
+      const { rate, notes } = applyOverride(ctx.setterId, "SETTER", s.setterRate);
       const amount = round(ctx.contractTotal * rate);
 
       entries.push({
@@ -129,17 +158,15 @@ export async function calculateAllCommissions(
         amount,
         isBelowFair: belowFair,
         isSelfGen: false,
+        notes,
       });
     }
   }
 
   // 3. Setter Manager Override
-  const setterManagers = await db.user.findMany({
-    where: { isSetterManager: true },
-    select: { id: true },
-  });
-  for (const mgr of setterManagers) {
-    const rate = belowFair ? s.setterManagerRateBelowFair : s.setterManagerRate;
+  for (const mgr of mgmt.setterManagers) {
+    const defaultRate = belowFair ? s.setterManagerRateBelowFair : s.setterManagerRate;
+    const { rate, notes } = applyOverride(mgr.id, "SETTER_MANAGER", defaultRate);
     const amount = round(ctx.contractTotal * rate);
     entries.push({
       userId: mgr.id,
@@ -150,65 +177,49 @@ export async function calculateAllCommissions(
       amount,
       isBelowFair: belowFair,
       isSelfGen: selfGen,
+      notes,
     });
   }
 
   // 4. Territory Owner Override (tiered by cumulative territory revenue)
-  const salesRep = await db.user.findUnique({
-    where: { id: ctx.salesRepId },
-    select: { territory: true, market: true },
-  });
-  const territory = salesRep?.territory ?? salesRep?.market ?? null;
+  if (mgmt.salesRepTerritoryId && mgmt.territoryOwners.length > 0) {
+    const cumulative = mgmt.cumulativeRevenue;
+    let defaultRate: number;
+    let tierLabel: string;
 
-  if (territory) {
-    const owners = await db.user.findMany({
-      where: {
-        isTerritoryOwner: true,
-        OR: [{ territory }, { market: territory }],
-      },
-      select: { id: true },
-    });
+    if (cumulative >= s.territoryOwnerTier3Threshold) {
+      defaultRate = s.territoryOwnerRateTier3;
+      tierLabel = "Tier 3";
+    } else if (cumulative >= s.territoryOwnerTier2Threshold) {
+      defaultRate = s.territoryOwnerRateTier2;
+      tierLabel = "Tier 2";
+    } else {
+      defaultRate = s.territoryOwnerRateTier1;
+      tierLabel = "Tier 1";
+    }
 
-    if (owners.length > 0) {
-      const cumulative = await getCumulativeTerritoryRevenue(territory, ctx.contractId);
-      let rate: number;
-      let tierLabel: string;
-
-      if (cumulative >= s.territoryOwnerTier3Threshold) {
-        rate = s.territoryOwnerRateTier3;
-        tierLabel = "Tier 3";
-      } else if (cumulative >= s.territoryOwnerTier2Threshold) {
-        rate = s.territoryOwnerRateTier2;
-        tierLabel = "Tier 2";
-      } else {
-        rate = s.territoryOwnerRateTier1;
-        tierLabel = "Tier 1";
-      }
-
+    for (const owner of mgmt.territoryOwners) {
+      const { rate, notes } = applyOverride(owner.id, "TERRITORY_OWNER", defaultRate);
       const amount = round(ctx.contractTotal * rate);
-      for (const owner of owners) {
-        entries.push({
-          userId: owner.id,
-          commissionType: "TERRITORY_OWNER",
-          contractTotal: ctx.contractTotal,
-          fairPrice: ctx.fairPrice,
-          rate,
-          amount,
-          isBelowFair: belowFair,
-          isSelfGen: selfGen,
-          tierLabel,
-        });
-      }
+      entries.push({
+        userId: owner.id,
+        commissionType: "TERRITORY_OWNER",
+        contractTotal: ctx.contractTotal,
+        fairPrice: ctx.fairPrice,
+        rate,
+        amount,
+        isBelowFair: belowFair,
+        isSelfGen: selfGen,
+        tierLabel,
+        notes,
+      });
     }
   }
 
   // 5. VP Override
-  const vps = await db.user.findMany({
-    where: { isVP: true },
-    select: { id: true },
-  });
-  for (const vp of vps) {
-    const rate = belowFair ? s.vpRateBelowFair : s.vpRate;
+  for (const vp of mgmt.vps) {
+    const defaultRate = belowFair ? s.vpRateBelowFair : s.vpRate;
+    const { rate, notes } = applyOverride(vp.id, "VP", defaultRate);
     const amount = round(ctx.contractTotal * rate);
     entries.push({
       userId: vp.id,
@@ -219,18 +230,16 @@ export async function calculateAllCommissions(
       amount,
       isBelowFair: belowFair,
       isSelfGen: selfGen,
+      notes,
     });
   }
 
   // 6. NSM Override
-  const nsms = await db.user.findMany({
-    where: { isNSM: true },
-    select: { id: true },
-  });
-  for (const nsm of nsms) {
-    const rate = selfGen
+  for (const nsm of mgmt.nsms) {
+    const defaultRate = selfGen
       ? (belowFair ? s.traditionalNsmOverrideRateBelowFair : s.traditionalNsmOverrideRate)
       : (belowFair ? s.nsmRateBelowFair : s.nsmRate);
+    const { rate, notes } = applyOverride(nsm.id, "NSM", defaultRate);
     const amount = round(ctx.contractTotal * rate);
     entries.push({
       userId: nsm.id,
@@ -241,16 +250,66 @@ export async function calculateAllCommissions(
       amount,
       isBelowFair: belowFair,
       isSelfGen: selfGen,
+      notes,
     });
   }
 
   return entries;
 }
 
+// ─── Main calculation (loads DB data then delegates to preview) ──
+
+export async function calculateAllCommissions(
+  ctx: CommissionContext,
+  settings?: Omit<CommissionSettings, "id" | "createdAt" | "updatedAt">
+): Promise<CommissionEntry[]> {
+  if (ctx.contractTotal <= 0 || !ctx.salesRepId) return [];
+
+  const s = settings ?? (await db.commissionSettings.findFirst()) ?? DEFAULT_SETTINGS;
+
+  // Load management users
+  const [setterManagers, salesRep, vps, nsms, allOverrides] = await Promise.all([
+    db.user.findMany({ where: { isSetterManager: true }, select: { id: true } }),
+    db.user.findUnique({ where: { id: ctx.salesRepId }, select: { territoryId: true } }),
+    db.user.findMany({ where: { isVP: true }, select: { id: true } }),
+    db.user.findMany({ where: { isNSM: true }, select: { id: true } }),
+    db.userCommissionOverride.findMany({ where: { isActive: true } }),
+  ]);
+
+  const territoryId = salesRep?.territoryId ?? null;
+
+  let territoryOwners: { id: string }[] = [];
+  let cumulativeRevenue = 0;
+
+  if (territoryId) {
+    [territoryOwners, cumulativeRevenue] = await Promise.all([
+      db.user.findMany({ where: { isTerritoryOwner: true, territoryId }, select: { id: true } }),
+      getCumulativeTerritoryRevenue(territoryId, ctx.contractId),
+    ]);
+  }
+
+  // Build override map
+  const overrides: CommissionOverrideMap = {};
+  for (const o of allOverrides) {
+    overrides[overrideKey(o.userId, o.commissionType)] = o.rateOverride;
+  }
+
+  const mgmt: ManagementUsers = {
+    setterManagers,
+    territoryOwners,
+    vps,
+    nsms,
+    salesRepTerritoryId: territoryId,
+    cumulativeRevenue,
+  };
+
+  return calculateCommissionsPreview(ctx, s, mgmt, overrides);
+}
+
 // ─── Territory revenue helper ───────────────────────────────
 
 export async function getCumulativeTerritoryRevenue(
-  territory: string,
+  territoryId: string,
   excludeContractId?: string
 ): Promise<number> {
   const yearStart = new Date(new Date().getFullYear(), 0, 1);
@@ -259,7 +318,7 @@ export async function getCumulativeTerritoryRevenue(
     status: "COMPLETED",
     createdAt: { gte: yearStart },
     salesRep: {
-      OR: [{ territory }, { market: territory }],
+      territoryId,
     },
   };
   if (excludeContractId) {

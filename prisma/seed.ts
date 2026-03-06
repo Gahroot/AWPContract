@@ -117,18 +117,40 @@ async function main() {
     },
   });
 
+  // ─── Territories ────────────────────────────────────────────
+  const slcTerritory = await prisma.territory.upsert({
+    where: { name: "SLC" },
+    update: {},
+    create: { name: "SLC", market: "SLC" },
+  });
+  await prisma.territory.upsert({
+    where: { name: "Orem" },
+    update: {},
+    create: { name: "Orem", market: "SLC" },
+  });
+  await prisma.territory.upsert({
+    where: { name: "Phoenix" },
+    update: {},
+    create: { name: "Phoenix", market: "Phoenix" },
+  });
+  await prisma.territory.upsert({
+    where: { name: "Vancouver" },
+    update: {},
+    create: { name: "Vancouver", market: "Vancouver" },
+  });
+
   // Set management role flags on test users
   await prisma.user.update({
     where: { email: "admin@awp.com" },
-    data: { isVP: true, isNSM: true, territory: "SLC" },
+    data: { isVP: true, isNSM: true, territoryId: slcTerritory.id },
   });
   await prisma.user.update({
     where: { email: "sales@awp.com" },
-    data: { isSetterManager: true, territory: "SLC" },
+    data: { isSetterManager: true, territoryId: slcTerritory.id },
   });
   await prisma.user.update({
     where: { email: "jake.morrison@awp.com" },
-    data: { isTerritoryOwner: true, territory: "SLC" },
+    data: { isTerritoryOwner: true, territoryId: slcTerritory.id },
   });
 
   // ─── Demo Contracts ─────────────────────────────────────────

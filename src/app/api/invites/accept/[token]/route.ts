@@ -102,6 +102,11 @@ export async function POST(
         password: hashedPassword,
         role: invite.role,
         market: invite.market,
+        isSetterManager: invite.isSetterManager,
+        isTerritoryOwner: invite.isTerritoryOwner,
+        isVP: invite.isVP,
+        isNSM: invite.isNSM,
+        territoryId: invite.territoryId,
       },
     });
 

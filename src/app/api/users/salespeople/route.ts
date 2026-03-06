@@ -20,7 +20,8 @@ export async function GET() {
       isTerritoryOwner: true,
       isVP: true,
       isNSM: true,
-      territory: true,
+      territoryId: true,
+      territory: { select: { id: true, name: true } },
     },
     orderBy: { name: "asc" },
   });

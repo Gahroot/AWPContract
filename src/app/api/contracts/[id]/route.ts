@@ -22,6 +22,10 @@ export async function GET(
       changeOrders: { orderBy: { createdAt: "desc" } },
       salesRep: { select: { id: true, name: true, email: true } },
       setter: { select: { id: true, name: true, email: true } },
+      commissionRecords: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { commissionType: "asc" },
+      },
     },
   });
 

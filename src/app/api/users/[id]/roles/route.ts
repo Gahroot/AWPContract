@@ -20,7 +20,7 @@ export async function PATCH(
   if (typeof body.isTerritoryOwner === "boolean") data.isTerritoryOwner = body.isTerritoryOwner;
   if (typeof body.isVP === "boolean") data.isVP = body.isVP;
   if (typeof body.isNSM === "boolean") data.isNSM = body.isNSM;
-  if (body.territory !== undefined) data.territory = body.territory || null;
+  if (body.territoryId !== undefined) data.territoryId = body.territoryId || null;
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No valid fields provided" }, { status: 400 });
@@ -37,7 +37,7 @@ export async function PATCH(
       isTerritoryOwner: true,
       isVP: true,
       isNSM: true,
-      territory: true,
+      territoryId: true,
     },
   });
 

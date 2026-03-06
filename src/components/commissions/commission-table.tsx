@@ -9,8 +9,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
-interface CommissionRecordRow {
+export interface CommissionRecordRow {
   id: string;
   contractTotal: number;
   fairPrice: number;
@@ -20,6 +21,7 @@ interface CommissionRecordRow {
   tierLabel: string | null;
   rate: number;
   amount: number;
+  status: string;
   createdAt: string;
   contract: {
     contractNumber: string;
@@ -34,6 +36,9 @@ interface CommissionRecordRow {
 
 interface CommissionTableProps {
   records: CommissionRecordRow[];
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
 }
 
 function formatCurrency(n: number): string {
@@ -55,7 +60,41 @@ function formatRole(type: string): string {
   return labels[type] ?? type;
 }
 
-export function CommissionTable({ records }: CommissionTableProps) {
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case "PENDING":
+      return (
+        <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">
+          Pending
+        </Badge>
+      );
+    case "APPROVED":
+      return (
+        <Badge variant="secondary" className="text-xs">
+          Approved
+        </Badge>
+      );
+    case "PAID":
+      return (
+        <Badge variant="default" className="text-xs bg-green-600">
+          Paid
+        </Badge>
+      );
+    default:
+      return (
+        <Badge variant="outline" className="text-xs">
+          {status}
+        </Badge>
+      );
+  }
+}
+
+export function CommissionTable({
+  records,
+  selectable = false,
+  selectedIds,
+  onSelectionChange,
+}: CommissionTableProps) {
   if (records.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-8 text-center">
@@ -64,15 +103,53 @@ export function CommissionTable({ records }: CommissionTableProps) {
     );
   }
 
+  const allSelected =
+    selectable && selectedIds && records.every((r) => selectedIds.has(r.id));
+  const someSelected =
+    selectable &&
+    selectedIds &&
+    records.some((r) => selectedIds.has(r.id)) &&
+    !allSelected;
+
+  function toggleAll() {
+    if (!onSelectionChange) return;
+    if (allSelected) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(records.map((r) => r.id)));
+    }
+  }
+
+  function toggleOne(id: string) {
+    if (!onSelectionChange || !selectedIds) return;
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    onSelectionChange(next);
+  }
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
+            {selectable && (
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={toggleAll}
+                  aria-label="Select all"
+                />
+              </TableHead>
+            )}
             <TableHead>Contract #</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Recipient</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead className="text-right">Contract Total</TableHead>
             <TableHead className="text-right">Fair Price</TableHead>
             <TableHead>Flags</TableHead>
@@ -84,6 +161,15 @@ export function CommissionTable({ records }: CommissionTableProps) {
         <TableBody>
           {records.map((r) => (
             <TableRow key={r.id}>
+              {selectable && (
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds?.has(r.id) ?? false}
+                    onCheckedChange={() => toggleOne(r.id)}
+                    aria-label={`Select ${r.contract.contractNumber}`}
+                  />
+                </TableCell>
+              )}
               <TableCell className="font-mono text-sm">
                 {r.contract.contractNumber.slice(0, 8)}
               </TableCell>
@@ -93,6 +179,9 @@ export function CommissionTable({ records }: CommissionTableProps) {
                 <Badge variant="outline" className="text-xs">
                   {formatRole(r.commissionType)}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={r.status} />
               </TableCell>
               <TableCell className="text-right">
                 {formatCurrency(r.contractTotal)}

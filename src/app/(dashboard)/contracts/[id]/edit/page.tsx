@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { SalesContractForm } from "@/components/contracts/sales-contract-form";
+import { ContractCommissionsCard } from "@/components/commissions/contract-commissions-card";
 import { Skeleton } from "@/components/ui/skeleton";
+
+interface SessionUser {
+  role?: string;
+}
 
 export default function EditContractPage() {
   const params = useParams();
@@ -11,17 +16,25 @@ export default function EditContractPage() {
   const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
 
-  useEffect(() => {
-    fetch(`/api/contracts/${id}`)
+  const fetchContract = useCallback(() => {
+    return fetch(`/api/contracts/${id}`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load");
         return r.json();
       })
       .then(setData)
-      .catch(() => setError("Something went wrong. Please try again."))
-      .finally(() => setLoading(false));
+      .catch(() => setError("Something went wrong. Please try again."));
   }, [id]);
+
+  useEffect(() => {
+    fetchContract().finally(() => setLoading(false));
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((s) => setSessionUser(s?.user ?? null))
+      .catch(() => {});
+  }, [fetchContract]);
 
   if (loading) {
     return (
@@ -49,5 +62,35 @@ export default function EditContractPage() {
     );
   }
 
-  return <SalesContractForm initialData={data} contractId={id} />;
+  const commissionRecords = (data.commissionRecords ?? []) as Array<{
+    id: string;
+    commissionType: string;
+    rate: number;
+    amount: number;
+    isBelowFair: boolean;
+    isSelfGen: boolean;
+    tierLabel: string | null;
+    user: { id: string; name: string | null; email: string };
+  }>;
+  const isAdmin = sessionUser?.role === "ADMIN";
+  const showCommissions =
+    data.status === "COMPLETED" && commissionRecords.length > 0;
+
+  return (
+    <div className="space-y-6">
+      <SalesContractForm initialData={data} contractId={id} />
+      {showCommissions && (
+        <ContractCommissionsCard
+          records={commissionRecords}
+          contractId={id}
+          isAdmin={isAdmin}
+          onRecalculated={(updated) =>
+            setData((prev) =>
+              prev ? { ...prev, commissionRecords: updated } : prev
+            )
+          }
+        />
+      )}
+    </div>
+  );
 }

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { email, role } = parsed.data;
+  const { email, role, isSetterManager, isTerritoryOwner, isVP, isNSM, territoryId } = parsed.data;
 
   // Check if user with this email already exists
   const existingUser = await db.user.findUnique({ where: { email } });
@@ -54,6 +54,11 @@ export async function POST(req: NextRequest) {
       market: inviter?.market ?? "SLC",
       invitedById: session.user.id,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      isSetterManager: isSetterManager ?? false,
+      isTerritoryOwner: isTerritoryOwner ?? false,
+      isVP: isVP ?? false,
+      isNSM: isNSM ?? false,
+      territoryId: territoryId ?? null,
     },
   });
 

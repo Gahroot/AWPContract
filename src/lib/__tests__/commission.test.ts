@@ -17,6 +17,9 @@ vi.mock("@/lib/db", () => ({
       deleteMany: vi.fn(),
       createMany: vi.fn(),
     },
+    userCommissionOverride: {
+      findMany: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));
@@ -76,8 +79,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Default: no management users
   mockDb.user.findMany.mockResolvedValue([]);
-  mockDb.user.findUnique.mockResolvedValue({ territory: "SLC", market: "SLC" });
+  mockDb.user.findUnique.mockResolvedValue({ territoryId: null });
   mockDb.contract.aggregate.mockResolvedValue({ _sum: { contractTotal: 0 } });
+  mockDb.userCommissionOverride.findMany.mockResolvedValue([]);
 });
 
 describe("helper functions", () => {
@@ -219,17 +223,11 @@ describe("calculateAllCommissions", () => {
 
   describe("setter manager", () => {
     it("creates entry for setter managers", async () => {
-      // First call returns setter managers, rest return empty
-      mockDb.user.findMany
-        .mockResolvedValueOnce([]) // no setter managers (first call for setter managers - wrong order)
-      ;
-
-      // Actually, findMany is called multiple times. Let me set them up properly.
-      // The order: setterManagers, then territory owners, then VPs, then NSMs
+      // Promise.all order: [setterManagers, VPs, NSMs]
+      // (salesRep findUnique and userCommissionOverride are separate)
       mockDb.user.findMany
         .mockReset()
         .mockResolvedValueOnce([{ id: "mgr1" }]) // setter managers
-        .mockResolvedValueOnce([]) // territory owners
         .mockResolvedValueOnce([]) // VPs
         .mockResolvedValueOnce([]); // NSMs
 
@@ -246,7 +244,6 @@ describe("calculateAllCommissions", () => {
         .mockReset()
         .mockResolvedValueOnce([{ id: "mgr1" }])
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
 
       const entries = await calculateAllCommissions(
@@ -260,12 +257,15 @@ describe("calculateAllCommissions", () => {
 
   describe("territory owner", () => {
     it("applies tier 1 rate for low cumulative revenue", async () => {
+      // salesRep has a territory
+      mockDb.user.findUnique.mockResolvedValue({ territoryId: "t1" });
+      // Promise.all batch: [setterManagers, VPs, NSMs]
       mockDb.user.findMany
         .mockReset()
         .mockResolvedValueOnce([]) // setter managers
-        .mockResolvedValueOnce([{ id: "owner1" }]) // territory owners
         .mockResolvedValueOnce([]) // VPs
-        .mockResolvedValueOnce([]); // NSMs
+        .mockResolvedValueOnce([]) // NSMs
+        .mockResolvedValueOnce([{ id: "owner1" }]); // territory owners (second batch)
       mockDb.contract.aggregate.mockResolvedValue({ _sum: { contractTotal: 100000 } });
 
       const entries = await calculateAllCommissions(makeCtx(), DEFAULT_SETTINGS);
@@ -276,12 +276,13 @@ describe("calculateAllCommissions", () => {
     });
 
     it("applies tier 2 rate at threshold", async () => {
+      mockDb.user.findUnique.mockResolvedValue({ territoryId: "t1" });
       mockDb.user.findMany
         .mockReset()
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: "owner1" }])
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([]);
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: "owner1" }]);
       mockDb.contract.aggregate.mockResolvedValue({ _sum: { contractTotal: 500000 } });
 
       const entries = await calculateAllCommissions(makeCtx(), DEFAULT_SETTINGS);
@@ -291,12 +292,13 @@ describe("calculateAllCommissions", () => {
     });
 
     it("applies tier 3 rate at threshold", async () => {
+      mockDb.user.findUnique.mockResolvedValue({ territoryId: "t1" });
       mockDb.user.findMany
         .mockReset()
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: "owner1" }])
         .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([]);
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: "owner1" }]);
       mockDb.contract.aggregate.mockResolvedValue({ _sum: { contractTotal: 1500000 } });
 
       const entries = await calculateAllCommissions(makeCtx(), DEFAULT_SETTINGS);
@@ -308,12 +310,12 @@ describe("calculateAllCommissions", () => {
 
   describe("VP", () => {
     it("creates VP entry with at-fair rate", async () => {
+      // Promise.all: [setterManagers, VPs, NSMs]
       mockDb.user.findMany
         .mockReset()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: "vp1" }])
-        .mockResolvedValueOnce([]);
+        .mockResolvedValueOnce([]) // setter managers
+        .mockResolvedValueOnce([{ id: "vp1" }]) // VPs
+        .mockResolvedValueOnce([]); // NSMs
 
       const entries = await calculateAllCommissions(makeCtx(), DEFAULT_SETTINGS);
       const vpEntry = entries.find((e) => e.commissionType === "VP");
@@ -325,7 +327,6 @@ describe("calculateAllCommissions", () => {
     it("uses below-fair rate", async () => {
       mockDb.user.findMany
         .mockReset()
-        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ id: "vp1" }])
         .mockResolvedValueOnce([]);
@@ -341,12 +342,12 @@ describe("calculateAllCommissions", () => {
 
   describe("NSM", () => {
     it("uses standard rates for setter-set", async () => {
+      // Promise.all: [setterManagers, VPs, NSMs]
       mockDb.user.findMany
         .mockReset()
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ id: "nsm1" }]);
+        .mockResolvedValueOnce([]) // setter managers
+        .mockResolvedValueOnce([]) // VPs
+        .mockResolvedValueOnce([{ id: "nsm1" }]); // NSMs
 
       const entries = await calculateAllCommissions(makeCtx(), DEFAULT_SETTINGS);
       const nsmEntry = entries.find((e) => e.commissionType === "NSM");
@@ -356,7 +357,6 @@ describe("calculateAllCommissions", () => {
     it("uses traditional rates for self-gen", async () => {
       mockDb.user.findMany
         .mockReset()
-        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ id: "nsm1" }]);
@@ -372,12 +372,15 @@ describe("calculateAllCommissions", () => {
 
   describe("full integration", () => {
     it("produces multiple entries for a contract with all roles", async () => {
+      // salesRep has a territory for territory owner lookup
+      mockDb.user.findUnique.mockResolvedValue({ territoryId: "t1" });
+      // Promise.all batch: [setterManagers, VPs, NSMs], then [territoryOwners]
       mockDb.user.findMany
         .mockReset()
         .mockResolvedValueOnce([{ id: "mgr1" }]) // setter managers
-        .mockResolvedValueOnce([{ id: "owner1" }]) // territory owners
         .mockResolvedValueOnce([{ id: "vp1" }]) // VPs
-        .mockResolvedValueOnce([{ id: "nsm1" }]); // NSMs
+        .mockResolvedValueOnce([{ id: "nsm1" }]) // NSMs
+        .mockResolvedValueOnce([{ id: "owner1" }]); // territory owners (second batch)
 
       const entries = await calculateAllCommissions(makeCtx(), DEFAULT_SETTINGS);
 

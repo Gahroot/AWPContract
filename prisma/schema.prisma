@@ -34,6 +34,12 @@ enum CommissionType {
   NSM
 }
 
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+}
+
 // ─── Auth.js Models ───────────────────────────────────────────
 
 model User {
@@ -53,16 +59,20 @@ model User {
   isTerritoryOwner Boolean  @default(false)
   isVP             Boolean  @default(false)
   isNSM            Boolean  @default(false)
-  territory        String?
+  territoryId      String?
+  territory        Territory? @relation("UserTerritory", fields: [territoryId], references: [id])
 
-  accounts          Account[]
-  sessions          Session[]
-  contracts         Contract[]
-  salesRepContracts Contract[] @relation("SalesRepContracts")
-  setterContracts   Contract[] @relation("SetterContracts")
-  commissionRecords CommissionRecord[]
-  invitesSent       Invite[]  @relation("InvitedByUser")
-  inviteAccepted    Invite[]  @relation("AcceptedInvite")
+  accounts               Account[]
+  sessions               Session[]
+  contracts              Contract[]
+  salesRepContracts      Contract[] @relation("SalesRepContracts")
+  setterContracts        Contract[] @relation("SetterContracts")
+  commissionRecords      CommissionRecord[]
+  commissionOverrides    UserCommissionOverride[]
+  invitesSent            Invite[]  @relation("InvitedByUser")
+  inviteAccepted         Invite[]  @relation("AcceptedInvite")
+
+  @@index([territoryId])
 }
 
 model Account {
@@ -395,27 +405,60 @@ model CommissionSettings {
 }
 
 model CommissionRecord {
-  id             String         @id @default(cuid())
+  id             String           @id @default(cuid())
   contractId     String
   userId         String
   commissionType CommissionType
   contractTotal  Float
   fairPrice      Float
-  isBelowFair    Boolean        @default(false)
-  isSelfGen      Boolean        @default(false)
+  isBelowFair    Boolean          @default(false)
+  isSelfGen      Boolean          @default(false)
   rate           Float
   amount         Float
   tierLabel      String?
   notes          String?
-  contract       Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  status         CommissionStatus @default(PENDING)
+  approvedAt     DateTime?
+  approvedBy     String?
+  paidAt         DateTime?
+  contract       Contract         @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   @@index([contractId])
   @@index([userId])
   @@index([commissionType])
   @@index([createdAt])
+  @@index([status])
+}
+
+// ─── Territory Model ─────────────────────────────────────────
+
+model Territory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  market    String   @default("SLC")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]   @relation("UserTerritory")
+}
+
+// ─── User Commission Override ───────────────────────────────
+
+model UserCommissionOverride {
+  id             String         @id @default(cuid())
+  userId         String
+  commissionType CommissionType
+  rateOverride   Float
+  isActive       Boolean        @default(true)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([userId, commissionType])
+  @@index([userId])
 }
 
 // ─── Invite Model ───────────────────────────────────────────
@@ -434,6 +477,13 @@ model Invite {
   expiresAt    DateTime
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+
+  // Onboarding pre-config
+  isSetterManager  Boolean @default(false)
+  isTerritoryOwner Boolean @default(false)
+  isVP             Boolean @default(false)
+  isNSM            Boolean @default(false)
+  territoryId      String?
 
   @@index([token])
   @@index([email])
