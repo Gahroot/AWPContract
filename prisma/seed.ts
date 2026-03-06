@@ -163,7 +163,7 @@ async function main() {
 
   // Fetch user IDs
   const salesUser = await prisma.user.findUnique({ where: { email: "sales@awp.com" } });
-  const adminUser = await prisma.user.findUnique({ where: { email: "admin@awp.com" } });
+  const _adminUser = await prisma.user.findUnique({ where: { email: "admin@awp.com" } });
 
   // Helper: calculate line item price using the pricing formula
   function calcPrice(

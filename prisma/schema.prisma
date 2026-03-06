@@ -120,7 +120,7 @@ model Contract {
   id               String         @id @default(cuid())
   contractNumber   String         @unique @default(cuid())
   status           ContractStatus @default(DRAFT)
-  accessToken      String         @unique @default(cuid(2))
+  accessToken      String         @unique @default(cuid())
 
   // Customer Info
   customerName     String?
@@ -465,7 +465,7 @@ model UserCommissionOverride {
 
 model Invite {
   id           String       @id @default(cuid())
-  token        String       @unique @default(cuid(2))
+  token        String       @unique @default(cuid())
   email        String
   role         Role         @default(SALESMAN)
   status       InviteStatus @default(PENDING)

@@ -94,6 +94,6 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     console.error("HubSpot addendum sync error:", e);
     const message = e instanceof Error ? e.message : "HubSpot sync failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "HubSpot sync failed" }, { status: 500 });
   }
 }

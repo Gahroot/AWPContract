@@ -1,5 +1,5 @@
-// Simple in-memory rate limiter for auth endpoints
-// For production, consider using Redis or a similar solution
+// TODO: Replace with Redis (e.g. @upstash/ratelimit) before production deployment.
+// In-memory rate limiting does not persist across serverless instances.
 
 interface RateLimitEntry {
   count: number;

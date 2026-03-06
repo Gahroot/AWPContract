@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: message },
+      { error: "HubSpot sync failed" },
       { status: 500 }
     );
   }
