@@ -84,6 +84,12 @@ export const salesContractDraftSchema = z.object({
   salesRepId: z.string().optional(),
   setterId: z.string().optional(),
   measurementNotes: z.string().optional(),
+  // New wizard fields
+  quoteDate: z.string().optional(),
+  selfGeneratedLead: z.boolean().default(false),
+  territoryId: z.string().optional(),
+  customerFirstName: z.string().optional(),
+  customerLastName: z.string().optional(),
   // Addendum fields
   installByAWD: z.boolean().default(false),
   measurementsTakenBy: z.string().optional(),

@@ -179,6 +179,9 @@ export async function PATCH(
           windowsComingOutOf: contractData.windowsComingOutOf ?? undefined,
           referredBy: contractData.referredBy ?? undefined,
           referralName: contractData.referralName ?? undefined,
+          quoteDate: contractData.quoteDate ? new Date(contractData.quoteDate) : undefined,
+          selfGeneratedLead: contractData.selfGeneratedLead ?? undefined,
+          territoryId: contractData.territoryId !== undefined ? (contractData.territoryId || null) : undefined,
           contractorSignature: contractData.contractorSignature ?? undefined,
           contractorSignatureDate: contractData.contractorSignatureDate
             ? new Date(contractData.contractorSignatureDate)

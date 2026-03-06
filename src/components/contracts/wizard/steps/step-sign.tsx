@@ -13,6 +13,7 @@ import { Send, Loader2 } from "lucide-react";
 interface StepSignProps {
   submitting?: boolean;
   onSubmit?: () => void;
+  contractId?: string | null;
 }
 
 export function StepSign({ submitting = false, onSubmit }: StepSignProps) {
@@ -101,7 +102,7 @@ export function StepSign({ submitting = false, onSubmit }: StepSignProps) {
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-center pt-4">
+          <div className="flex flex-col items-center gap-3 pt-4">
             <Button
               type="button"
               size="lg"
@@ -121,15 +122,15 @@ export function StepSign({ submitting = false, onSubmit }: StepSignProps) {
                 </>
               )}
             </Button>
-          </div>
 
-          {!canSubmit && !submitting && (
-            <p className="text-sm text-center text-muted-foreground">
-              {!isCustomerSigned
-                ? "Please provide customer signature to submit"
-                : "Please accept the terms and conditions to submit"}
-            </p>
-          )}
+            {!canSubmit && !submitting && (
+              <p className="text-sm text-muted-foreground">
+                {!isCustomerSigned
+                  ? "Please provide customer signature to submit"
+                  : "Please accept the terms and conditions to submit"}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

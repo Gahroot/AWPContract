@@ -18,14 +18,24 @@ import {
   type SalesContractDraftValues,
 } from "@/lib/validations";
 import { useAutoSave } from "@/lib/hooks/use-auto-save";
-import { CustomerStep } from "./steps/customer-step";
-import { WindowsStep } from "./steps/windows-step";
-import { OptionsPricingStep } from "./steps/options-pricing-step";
-import { AddendumStep } from "./steps/addendum-step";
-import { PreviewStep } from "./steps/preview-step";
-import { SignStep } from "./steps/sign-step";
+import { StepCustomer } from "./steps/step-customer";
+import { StepWindows } from "./steps/step-windows";
+import { StepOptionsPricing } from "./steps/step-options-pricing";
+import { StepAddendum } from "./steps/step-addendum";
+import { StepPreview } from "./steps/step-preview";
+import { StepSign } from "./steps/step-sign";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AlertTriangle, CheckCircle2, Download, Loader2 } from "lucide-react";
+import type { TerritoryOption } from "@/components/shared/territory-combobox";
 
 const defaultLineItem = {
   location: "",
@@ -50,11 +60,22 @@ const defaultLineItem = {
   sortOrder: 0,
 };
 
+function splitCustomerName(fullName: string): [string, string] {
+  const trimmed = fullName.trim();
+  if (!trimmed) return ["", ""];
+  const parts = trimmed.split(" ");
+  if (parts.length === 1) return [parts[0], ""];
+  return [parts[0], parts.slice(1).join(" ")];
+}
+
 function getDefaultValues(
   initialData?: Partial<SalesContractDraftValues>
 ): SalesContractDraftValues {
+  const [firstName, lastName] = splitCustomerName(initialData?.customerName || "");
   return {
     customerName: initialData?.customerName || "",
+    customerFirstName: initialData?.customerFirstName || firstName,
+    customerLastName: initialData?.customerLastName || lastName,
     customerPhone: initialData?.customerPhone || "",
     customerPhoneAlt: initialData?.customerPhoneAlt || "",
     customerEmail: initialData?.customerEmail || "",
@@ -112,6 +133,10 @@ function getDefaultValues(
     windowsComingOutOf: initialData?.windowsComingOutOf || [],
     referredBy: initialData?.referredBy || "",
     referralName: initialData?.referralName || "",
+    // New wizard fields
+    quoteDate: initialData?.quoteDate || new Date().toISOString().split("T")[0],
+    selfGeneratedLead: initialData?.selfGeneratedLead || false,
+    territoryId: initialData?.territoryId || "",
   };
 }
 
@@ -177,12 +202,14 @@ export function ContractWizard({
     initialContractId || null
   );
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(new Set<number>([0]));
   const changeOrders = initialData?.changeOrders;
-  // Salespeople fetched in step components, not used here
-  const [_salespeople, _setSalespeople] = useState<
-    Array<{ id: string; name: string | null; email: string }>
-  >([]);
+
+  // Territory state
+  const [territories, setTerritories] = useState<TerritoryOption[]>([]);
+  const [selectedTerritory, setSelectedTerritory] = useState<TerritoryOption | null>(null);
 
   const methods = useForm<SalesContractDraftValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Zod v4 + @hookform/resolvers type mismatch
@@ -192,9 +219,56 @@ export function ContractWizard({
 
   const { trigger } = methods;
 
+  // Fetch session to auto-fill salesman and territory
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((session) => {
+        if (session?.user) {
+          if (!methods.getValues("salesman") && session.user.name) {
+            methods.setValue("salesman", session.user.name);
+          }
+          if (session.user.territoryId && session.user.territoryName) {
+            const userTerritory = {
+              id: session.user.territoryId,
+              name: session.user.territoryName,
+            };
+            setSelectedTerritory(userTerritory);
+            methods.setValue("territoryId", userTerritory.id, { shouldDirty: true });
+          }
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch territories for header dropdown
+  useEffect(() => {
+    fetch("/api/users/territories")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        setTerritories(data);
+        if (initialData?.territoryId) {
+          const match = data.find((t: TerritoryOption) => t.id === initialData.territoryId);
+          if (match) setSelectedTerritory(match);
+        }
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleTerritoryChange = useCallback(
+    (territory: TerritoryOption) => {
+      setSelectedTerritory(territory);
+      methods.setValue("territoryId", territory.id, { shouldDirty: true });
+      setTerritories((prev) => {
+        if (prev.some((t) => t.id === territory.id)) return prev;
+        return [...prev, territory];
+      });
+    },
+    [methods]
+  );
+
   // Wrapper for trigger to match useWizard expected type
   const triggerWrapper = useCallback(async (fieldNames: string[]) => {
-    // trigger returns boolean | Promise<boolean>, handle both
     const result = await trigger(fieldNames as unknown as Parameters<typeof trigger>[0]);
     return Boolean(result);
   }, [trigger]);
@@ -205,14 +279,6 @@ export function ContractWizard({
     trigger: triggerWrapper,
     initialStep: 0,
   });
-
-  // Fetch salespeople for dropdowns
-  useEffect(() => {
-    fetch("/api/users/salespeople")
-      .then((res) => (res.ok ? res.json() : []))
-      .then(_setSalespeople)
-      .catch(() => {});
-  }, []);
 
   // Auto-save handler
   const handleAutoSave = useCallback(
@@ -238,49 +304,9 @@ export function ContractWizard({
     enabled: !!contractId,
   });
 
-  // Save Draft (exposed but not currently used in wizard UI)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async function onSaveDraft() {
-    const data = methods.getValues();
-    setSubmitting(true);
-    try {
-      if (contractId) {
-        const res = await fetch(`/api/contracts/${contractId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        if (res.ok) {
-          toast.success("Draft saved");
-        } else {
-          const err = await res.json().catch(() => ({}));
-          toast.error(err.error || "Failed to save draft");
-        }
-      } else {
-        const res = await fetch("/api/contracts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        if (res.ok) {
-          const contract = await res.json();
-          setContractId(contract.id);
-          toast.success("Contract created");
-          router.replace(`/contracts/${contract.id}/edit`);
-        } else {
-          const err = await res.json().catch(() => ({}));
-          toast.error(err.error || "Failed to create contract");
-        }
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   // Submit Contract
   async function onSubmit(data: SalesContractDraftValues) {
     if (!contractId) {
-      // Create contract first if it doesn't exist
       const res = await fetch("/api/contracts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -320,8 +346,7 @@ export function ContractWizard({
 
       if (res.ok) {
         await res.json();
-        toast.success("Contract submitted successfully");
-        router.push("/");
+        setShowSuccessDialog(true);
       } else {
         const err = await res.json();
         toast.error(err.error || "Failed to submit contract");
@@ -334,7 +359,6 @@ export function ContractWizard({
   // Handle step navigation with completion tracking
   const handleNext = async () => {
     await wizard.next();
-    // Mark all steps up to current as completed
     setCompletedSteps((prev) => {
       const next = new Set(prev);
       for (let i = 0; i <= wizard.currentStepIndex + 1; i++) {
@@ -346,7 +370,6 @@ export function ContractWizard({
 
   const handleStepClick = async (index: number) => {
     await wizard.goToStep(index);
-    // Update completion on direct navigation
     setCompletedSteps((prev) => {
       const next = new Set(prev);
       for (let i = 0; i <= index; i++) {
@@ -360,17 +383,23 @@ export function ContractWizard({
   const renderStep = () => {
     switch (wizard.currentStep.id) {
       case "customer":
-        return <CustomerStep />;
+        return <StepCustomer />;
       case "windows":
-        return <WindowsStep />;
+        return <StepWindows />;
       case "options-pricing":
-        return <OptionsPricingStep />;
+        return <StepOptionsPricing />;
       case "addendum":
-        return <AddendumStep />;
+        return <StepAddendum />;
       case "preview":
-        return <PreviewStep />;
+        return <StepPreview />;
       case "sign":
-        return <SignStep />;
+        return (
+          <StepSign
+            submitting={submitting}
+            onSubmit={() => methods.handleSubmit(onSubmit)()}
+            contractId={contractId}
+          />
+        );
       default:
         return null;
     }
@@ -378,9 +407,15 @@ export function ContractWizard({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)} className="flex flex-col h-screen">
+      <form onSubmit={methods.handleSubmit(onSubmit)} className="flex flex-col h-full -m-4 md:-m-6">
         {/* Header */}
-        <WizardHeader saving={saving} lastSaved={lastSaved} />
+        <WizardHeader
+          saving={saving}
+          lastSaved={lastSaved}
+          territories={territories}
+          selectedTerritory={selectedTerritory}
+          onTerritoryChange={handleTerritoryChange}
+        />
 
         {/* Change Order Banner */}
         {changeOrders && changeOrders.length > 0 && (
@@ -423,6 +458,66 @@ export function ContractWizard({
           submitting={submitting}
         />
       </form>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader className="items-center text-center">
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            </div>
+            <DialogTitle className="text-xl">Contract Submitted</DialogTitle>
+            <DialogDescription>
+              Your contract has been submitted successfully. You can download the PDF now or return to your dashboard.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={generatingPdf}
+              onClick={async () => {
+                if (!contractId) return;
+                setGeneratingPdf(true);
+                try {
+                  const res = await fetch(`/api/contracts/${contractId}/pdf`);
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    toast.error(err.error || "Failed to generate PDF");
+                    return;
+                  }
+                  const { url } = await res.json();
+                  window.open(url, "_blank");
+                } catch {
+                  toast.error("Failed to generate PDF");
+                } finally {
+                  setGeneratingPdf(false);
+                }
+              }}
+            >
+              {generatingPdf ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <Download className="h-5 w-5 mr-2" />
+                  Download PDF
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => router.push("/")}
+            >
+              Back to Dashboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </FormProvider>
   );
 }

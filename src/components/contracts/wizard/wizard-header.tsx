@@ -1,16 +1,22 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, MapPin } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { AutoSaveIndicator } from "@/components/shared/auto-save-indicator";
+import {
+  TerritoryCombobox,
+  type TerritoryOption,
+} from "@/components/shared/territory-combobox";
 
 export interface WizardHeaderProps {
   saving?: boolean;
   lastSaved?: Date | null;
   hasUnsavedRecovery?: boolean;
   onDismissRecovery?: () => void;
+  territories?: TerritoryOption[];
+  selectedTerritory?: TerritoryOption | null;
+  onTerritoryChange?: (territory: TerritoryOption) => void;
   className?: string;
 }
 
@@ -19,6 +25,9 @@ export function WizardHeader({
   lastSaved = null,
   hasUnsavedRecovery = false,
   onDismissRecovery,
+  territories = [],
+  selectedTerritory = null,
+  onTerritoryChange,
   className,
 }: WizardHeaderProps) {
   return (
@@ -52,23 +61,24 @@ export function WizardHeader({
       <div className="flex items-center justify-between px-4 py-3">
         {/* Title and territory selector */}
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-gray-900">
-            New Contract / Build a window replacement quote
-          </h1>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">New Contract</h1>
+            <p className="text-sm text-gray-500">Build a window replacement quote</p>
+          </div>
 
-          {/* Territory selector placeholder */}
           <div className="h-6 w-px bg-gray-300" />
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Territory:</span>
-            <select
-              className="text-sm border-gray-300 rounded-md shadow-sm focus:border-awp-blue focus:ring-awp-blue"
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Select territory...
-              </option>
-              {/* Territories will be populated dynamically */}
-            </select>
+            <MapPin className="h-4 w-4 text-gray-400" />
+            {onTerritoryChange ? (
+              <TerritoryCombobox
+                value={selectedTerritory ?? null}
+                options={territories}
+                onChange={onTerritoryChange}
+                placeholder="Select territory..."
+              />
+            ) : (
+              <span className="text-sm text-gray-400">No territories</span>
+            )}
           </div>
         </div>
 
@@ -76,15 +86,12 @@ export function WizardHeader({
         <div className="flex items-center gap-4">
           <AutoSaveIndicator saving={saving} lastSaved={lastSaved} />
 
-          <Link href="/">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-gray-500 hover:text-gray-700"
-              aria-label="Exit wizard"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <X className="h-4 w-4" />
+            Exit
           </Link>
         </div>
       </div>

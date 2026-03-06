@@ -165,7 +165,7 @@ export default function DashboardLayout({
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen flex overflow-hidden">
       {/* Desktop sidebar - hidden on mobile and tablet */}
       <aside className="hidden 2xl:flex 2xl:w-64 2xl:flex-col border-r" style={{ backgroundColor: 'var(--sidebar)' }}>
         <Sidebar />

@@ -215,6 +215,9 @@ export async function POST(req: NextRequest) {
         windowsComingOutOf: contractData.windowsComingOutOf || null,
         referredBy: contractData.referredBy || null,
         referralName: contractData.referralName || null,
+        quoteDate: contractData.quoteDate ? new Date(contractData.quoteDate) : null,
+        selfGeneratedLead: contractData.selfGeneratedLead ?? false,
+        territoryId: contractData.territoryId || null,
         contractorSignature: contractData.contractorSignature || null,
         contractorSignatureDate: contractData.contractorSignatureDate
           ? new Date(contractData.contractorSignatureDate)

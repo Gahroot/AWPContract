@@ -2,6 +2,7 @@
 
 import { useFormContext } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -274,6 +275,98 @@ export function StepAddendum() {
                   {...register("referralName")}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
+              </div>
+            </div>
+          </div>
+          <Separator />
+
+          {/* Additional Job Details (moved from Customer step) */}
+          <div className="space-y-4">
+            <h3 className="text-base font-semibold">Additional Job Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>House Type</Label>
+                <div className="flex flex-wrap gap-4">
+                  {FORM_OPTIONS.houseType.map((type) => (
+                    <label key={type} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        value={type}
+                        {...register("houseType")}
+                        className="accent-primary"
+                      />
+                      {type}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="windowsBeingRemoved">Windows Being Removed</Label>
+                <select
+                  id="windowsBeingRemoved"
+                  {...register("windowsBeingRemoved")}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Select type</option>
+                  {FORM_OPTIONS.windowsBeingRemoved.map((w) => (
+                    <option key={w} value={w}>
+                      {w}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="measuredBy">Measured By</Label>
+                <Input id="measuredBy" {...register("measuredBy")} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="billingAddress">Billing Address (if different)</Label>
+                <Input
+                  id="billingAddress"
+                  {...register("billingAddress")}
+                  placeholder="Leave blank if same as job address"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerPhoneAlt">Alt Phone</Label>
+                <Input id="customerPhoneAlt" {...register("customerPhoneAlt")} />
+              </div>
+              <div className="space-y-2">
+                <Label>Preferred Communication</Label>
+                <RadioGroup
+                  value={watch("preferredCommunication") || ""}
+                  onValueChange={(v) =>
+                    setValue("preferredCommunication", v, { shouldDirty: true })
+                  }
+                >
+                  <div className="flex gap-4">
+                    {FORM_OPTIONS.preferredCommunication.map((method) => (
+                      <label key={method} className="flex items-center gap-2 text-sm">
+                        <RadioGroupItem value={method} />
+                        {method}
+                      </label>
+                    ))}
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+            <div>
+              <Label className="mb-2 block">Application Surface Quantities</Label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  { id: "brickApplicationQty", label: "Brick" },
+                  { id: "stuccoApplicationQty", label: "Stucco" },
+                  { id: "sidingApplicationQty", label: "Siding" },
+                  { id: "foundationApplicationQty", label: "Foundation" },
+                  { id: "woodApplicationQty", label: "Wood" },
+                ].map(({ id, label }) => (
+                  <div key={id} className="space-y-1">
+                    <Label htmlFor={id} className="text-xs text-muted-foreground">
+                      {label}
+                    </Label>
+                    <Input id={id} type="number" min="0" {...register(id)} />
+                  </div>
+                ))}
               </div>
             </div>
           </div>

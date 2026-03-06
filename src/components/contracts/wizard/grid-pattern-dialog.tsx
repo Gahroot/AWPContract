@@ -25,9 +25,10 @@ import { Grid2x2 } from "lucide-react";
 
 interface GridPatternDialogProps {
   lineItemIndex: number;
+  children?: React.ReactNode;
 }
 
-export function GridPatternDialog({ lineItemIndex }: GridPatternDialogProps) {
+export function GridPatternDialog({ lineItemIndex, children }: GridPatternDialogProps) {
   const { setValue } = useFormContext();
   const [open, setOpen] = useState(false);
 
@@ -102,15 +103,17 @@ export function GridPatternDialog({ lineItemIndex }: GridPatternDialogProps) {
       setOpen(newOpen);
     }}>
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-8 w-8"
-          title="Grid Pattern"
-        >
-          <Grid2x2 className="h-4 w-4" />
-        </Button>
+        {children || (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            title="Grid Pattern"
+          >
+            <Grid2x2 className="h-4 w-4" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
