@@ -17,6 +17,7 @@ export async function GET(
     where: { id },
     include: {
       lineItems: { orderBy: { sortOrder: "asc" } },
+      addendums: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
 

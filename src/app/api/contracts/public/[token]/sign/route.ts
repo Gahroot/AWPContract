@@ -23,7 +23,10 @@ export async function POST(
     );
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   // Validate signature
   if (!body.customerSignature || !body.customerSignature.startsWith("data:image/")) {
@@ -41,7 +44,10 @@ export async function POST(
       paymentMethod: body.paymentMethod || null,
       status: "SIGNED",
     },
-    include: { lineItems: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      lineItems: { orderBy: { sortOrder: "asc" } },
+      addendums: { orderBy: { createdAt: "desc" }, take: 1 },
+    },
   });
 
   let pdfUrl = updated.pdfUrl;

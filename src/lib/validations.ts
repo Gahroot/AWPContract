@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+// Step validation field arrays for wizard navigation gating
+export const STEP_1_FIELDS = ["customerName", "customerPhone", "customerEmail", "jobAddress", "customerCity", "customerState", "customerZip"] as const;
+export const STEP_2_FIELDS = ["lineItems"]; // Validation: at least 1 item with location + type
+export const STEP_3_FIELDS = ["paymentMethod", "downPayment"];
+export const STEP_4_FIELDS = []; // No hard requirements (all optional)
+export const STEP_5_FIELDS = []; // Read-only
+export const STEP_6_FIELDS = ["contractorSignature", "customerSignature", "customerAcceptedTerms"];
+
 // Line item schema
 export const lineItemSchema = z.object({
   id: z.string().optional(),
@@ -24,6 +32,10 @@ export const lineItemSchema = z.object({
   wrap: z.boolean().default(false),
   coated: z.boolean().default(false),
   awpShutterRnr: z.boolean().default(false),
+  // Grid pattern fields
+  gridVerticalLines: z.coerce.number().min(0).default(0),
+  gridHorizontalLines: z.coerce.number().min(0).default(0),
+  gridPatternNotes: z.string().optional(),
   price: z.coerce.number().default(0),
   sortOrder: z.coerce.number().default(0),
 });
@@ -72,6 +84,17 @@ export const salesContractDraftSchema = z.object({
   salesRepId: z.string().optional(),
   setterId: z.string().optional(),
   measurementNotes: z.string().optional(),
+  // Addendum fields
+  installByAWD: z.boolean().default(false),
+  measurementsTakenBy: z.string().optional(),
+  hasShutters: z.boolean().default(false),
+  removalWindows: z.coerce.number().min(0).default(0),
+  removalDoors: z.coerce.number().min(0).default(0),
+  typeComingOut: z.string().optional(),
+  windowsComingOutOf: z.array(z.string()).optional(),
+  referredBy: z.string().optional(),
+  referralName: z.string().optional(),
+  // Signatures
   contractorSignature: z.string().optional(),
   contractorSignatureDate: z.string().optional(),
   customerSignature: z.string().optional(),
@@ -129,6 +152,7 @@ export const addendumSchema = z.object({
   ackPricing: z.boolean().default(false),
   ackTerms: z.boolean().default(false),
   ackInitials: z.string().optional(),
+  hasInteriorShutters: z.boolean().default(false),
   referralName: z.string().optional(),
   referralPhone: z.string().optional(),
   notes: z.string().optional(),

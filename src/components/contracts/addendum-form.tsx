@@ -361,6 +361,13 @@ export function AddendumForm({ contract }: AddendumFormProps) {
             <Label>Initials</Label>
             <Input {...register("ackInitials")} placeholder="Initials" />
           </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={!!watch("hasInteriorShutters")}
+              onCheckedChange={(checked) => setValue("hasInteriorShutters", !!checked)}
+            />
+            <Label>Interior Shutters</Label>
+          </div>
         </CardContent>
       </Card>
 

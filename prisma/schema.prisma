@@ -173,6 +173,17 @@ model Contract {
   foundationApplicationQty Int      @default(0)
   woodApplicationQty       Int      @default(0)
 
+  // Addendum fields
+  installByAWD          Boolean  @default(false)
+  measurementsTakenBy   String?
+  hasShutters           Boolean  @default(false)
+  removalWindows        Int      @default(0)
+  removalDoors          Int      @default(0)
+  typeComingOut         String?
+  windowsComingOutOf    Json?
+  referredBy            String?
+  referralName          String?
+
   // Notes
   measurementNotes String?
 
@@ -247,6 +258,11 @@ model LineItem {
   coated         Boolean @default(false)
   awpShutterRnr  Boolean @default(false)
 
+  // Grid pattern fields
+  gridVerticalLines   Int @default(0)
+  gridHorizontalLines Int @default(0)
+  gridPatternNotes    String?
+
   // Calculated price
   price     Float @default(0)
   sortOrder Int   @default(0)
@@ -287,6 +303,9 @@ model Addendum {
   ackPricing         Boolean @default(false)
   ackTerms           Boolean @default(false)
   ackInitials        String?
+
+  // Interior Shutters
+  hasInteriorShutters Boolean @default(false)
 
   // Referral
   referralName  String?

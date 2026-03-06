@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { calculateLineItem, calculateContractTotal, calculateBalanceDue, type LineItemInput } from "@/lib/pricing";
+import { salesContractSubmitSchema } from "@/lib/validations";
 
 // POST /api/contracts/[id]/submit - Finalize contract
 export async function POST(
@@ -23,34 +24,19 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
-  const { lineItems, ...contractData } = body;
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
-  // Validate required fields
-  if (!contractData.customerName) {
-    return NextResponse.json(
-      { error: "Customer name is required" },
-      { status: 400 }
-    );
+  // Validate with Zod schema
+  const parsed = salesContractSubmitSchema.safeParse(body);
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0]?.message || "Validation failed";
+    return NextResponse.json({ error: firstError }, { status: 400 });
   }
-  if (!contractData.customerSignature) {
-    return NextResponse.json(
-      { error: "Customer signature is required" },
-      { status: 400 }
-    );
-  }
-  if (!contractData.contractorSignature) {
-    return NextResponse.json(
-      { error: "Contractor signature is required" },
-      { status: 400 }
-    );
-  }
-  if (!lineItems || lineItems.length === 0) {
-    return NextResponse.json(
-      { error: "At least one line item is required" },
-      { status: 400 }
-    );
-  }
+
+  const { lineItems, ...contractData } = parsed.data;
 
   // Server-side price validation
   let serverTotal = 0;
@@ -82,14 +68,18 @@ export async function POST(
         wrap: item.wrap || false,
         coated: item.coated || false,
         awpShutterRnr: item.awpShutterRnr || false,
+        productCode: item.productCode || null,
+        operation: item.operation || null,
+        gridType: item.gridType || null,
+        glassType: item.glassType || null,
         price: serverPrice,
         sortOrder: item.sortOrder ?? index,
       };
     }
   );
 
-  const discount = parseFloat(contractData.discount) || 0;
-  const downPayment = parseFloat(contractData.downPayment) || 0;
+  const discount = contractData.discount;
+  const downPayment = contractData.downPayment;
   const contractTotal = calculateContractTotal(serverTotal, discount);
   const balanceDue = calculateBalanceDue(contractTotal, downPayment);
 
@@ -120,11 +110,11 @@ export async function POST(
         contractTotal,
         downPayment,
         balanceDue,
-        financeBalance: parseFloat(contractData.financeBalance) || 0,
+        financeBalance: contractData.financeBalance,
         wfebAccount: contractData.wfebAccount || null,
         planNumber: contractData.planNumber || null,
         authNumber: contractData.authNumber || null,
-        marketingSource: contractData.marketingSource || null,
+        marketingSource: contractData.marketingSource ?? undefined,
         paymentMethod: contractData.paymentMethod || null,
         customerState: contractData.customerState || null,
         preferredCommunication: contractData.preferredCommunication || null,
@@ -136,11 +126,11 @@ export async function POST(
         paymentNotes: contractData.paymentNotes || null,
         contractNotes: contractData.contractNotes || null,
         customerNotes: contractData.customerNotes || null,
-        brickApplicationQty: parseInt(contractData.brickApplicationQty) || 0,
-        stuccoApplicationQty: parseInt(contractData.stuccoApplicationQty) || 0,
-        sidingApplicationQty: parseInt(contractData.sidingApplicationQty) || 0,
-        foundationApplicationQty: parseInt(contractData.foundationApplicationQty) || 0,
-        woodApplicationQty: parseInt(contractData.woodApplicationQty) || 0,
+        brickApplicationQty: contractData.brickApplicationQty,
+        stuccoApplicationQty: contractData.stuccoApplicationQty,
+        sidingApplicationQty: contractData.sidingApplicationQty,
+        foundationApplicationQty: contractData.foundationApplicationQty,
+        woodApplicationQty: contractData.woodApplicationQty,
         measurementNotes: contractData.measurementNotes || null,
         contractorSignature: contractData.contractorSignature,
         contractorSignatureDate: contractData.contractorSignatureDate
@@ -161,7 +151,7 @@ export async function POST(
           create: processedItems,
         },
       },
-      include: { lineItems: true },
+      include: { lineItems: true, addendums: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
   });
   } catch (e) {
