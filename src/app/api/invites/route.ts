@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
   const parsed = createInviteSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -62,7 +62,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const url = `${req.nextUrl.origin}/invite/${invite.token}`;
+  const proto = req.headers.get("x-forwarded-proto") ?? "http";
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? req.nextUrl.host;
+  const url = `${proto}://${host}/invite/${invite.token}`;
 
   return NextResponse.json({ invite, url }, { status: 201 });
 }
