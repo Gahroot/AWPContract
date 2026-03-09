@@ -172,10 +172,12 @@ export async function POST(
   }
 
   // Generate PDF
+  let pdfGenerated = false;
   try {
     const { generateAndSavePdf } = await import("@/lib/pdf");
     const url = await generateAndSavePdf(contract as Parameters<typeof generateAndSavePdf>[0]);
     await db.contract.update({ where: { id }, data: { pdfUrl: url } });
+    pdfGenerated = true;
   } catch (e) {
     console.error("PDF generation failed:", e);
   }
@@ -191,9 +193,11 @@ export async function POST(
   }
 
   // Commission calculation
+  let commissionsCalculated = false;
   try {
     const { upsertCommissionsForContract } = await import("@/lib/commission");
     await upsertCommissionsForContract(id, "Initial calculation on contract completion");
+    commissionsCalculated = true;
   } catch (e) {
     console.error("Commission calculation failed:", e);
   }
@@ -201,6 +205,8 @@ export async function POST(
   return NextResponse.json({
     contract,
     hubspot: hubspotSynced,
+    pdfGenerated,
+    commissionsCalculated,
     shareUrl: `/contracts/view/${contract.accessToken}`,
   });
 }

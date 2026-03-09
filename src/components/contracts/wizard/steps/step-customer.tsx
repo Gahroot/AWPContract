@@ -20,7 +20,7 @@ export function StepCustomer() {
     fetch("/api/users/salespeople")
       .then((res) => (res.ok ? res.json() : []))
       .then(setSalespeople)
-      .catch(() => {});
+      .catch((e) => console.error("Failed to load salespeople:", e));
   }, []);
 
   const selfGeneratedLead = watch("selfGeneratedLead") || false;

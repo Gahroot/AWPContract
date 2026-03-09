@@ -33,7 +33,7 @@ export default function EditContractPage() {
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((s) => setSessionUser(s?.user ?? null))
-      .catch(() => {});
+      .catch((e) => console.error("Failed to load session:", e));
   }, [fetchContract]);
 
   if (loading) {

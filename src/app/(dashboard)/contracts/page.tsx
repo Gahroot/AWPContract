@@ -102,6 +102,8 @@ function ContractsContent() {
       if (res.ok) {
         setData(await res.json());
       }
+    } catch {
+      toast.error("Failed to load contracts");
     } finally {
       setLoading(false);
     }
@@ -136,6 +138,8 @@ function ContractsContent() {
         const { error } = await res.json();
         toast.error(error || "Sync failed");
       }
+    } catch {
+      toast.error("Network error during HubSpot sync");
     } finally {
       setSyncingContractId(null);
     }
@@ -397,6 +401,7 @@ function ContractsContent() {
                                 }
                               } catch (e) {
                                 console.error("PDF generation error:", e);
+                                toast.error("Failed to generate PDF");
                               }
                             }}
                           >

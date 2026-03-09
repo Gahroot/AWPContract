@@ -28,10 +28,18 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  // Validate signature
-  if (!body.customerSignature || !body.customerSignature.startsWith("data:image/")) {
+  // Validate signature - whitelist MIME types and enforce size limit
+  const dataUriRegex = /^data:image\/(png|jpeg);base64,/;
+  if (!body.customerSignature || !dataUriRegex.test(body.customerSignature)) {
     return NextResponse.json(
-      { error: "Valid customer signature is required" },
+      { error: "Valid customer signature is required (PNG or JPEG)" },
+      { status: 400 }
+    );
+  }
+  const base64Data = body.customerSignature.split(",")[1];
+  if (Buffer.from(base64Data, "base64").length > 500_000) {
+    return NextResponse.json(
+      { error: "Signature image too large (max 500KB)" },
       { status: 400 }
     );
   }

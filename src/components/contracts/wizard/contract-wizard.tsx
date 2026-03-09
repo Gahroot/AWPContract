@@ -238,7 +238,7 @@ export function ContractWizard({
           }
         }
       })
-      .catch(() => {});
+      .catch((e) => console.error("Failed to load session:", e));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch territories for header dropdown
@@ -252,7 +252,7 @@ export function ContractWizard({
           if (match) setSelectedTerritory(match);
         }
       })
-      .catch(() => {});
+      .catch((e) => console.error("Failed to load territories:", e));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTerritoryChange = useCallback(
@@ -306,7 +306,8 @@ export function ContractWizard({
 
   // Submit Contract
   async function onSubmit(data: SalesContractDraftValues) {
-    if (!contractId) {
+    let currentContractId = contractId;
+    if (!currentContractId) {
       const res = await fetch("/api/contracts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -318,7 +319,8 @@ export function ContractWizard({
         return;
       }
       const contract = await res.json();
-      setContractId(contract.id);
+      currentContractId = contract.id;
+      setContractId(currentContractId);
     }
 
     if (!data.customerSignature) {
@@ -338,7 +340,7 @@ export function ContractWizard({
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/contracts/${contractId}/submit`, {
+      const res = await fetch(`/api/contracts/${currentContractId}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
