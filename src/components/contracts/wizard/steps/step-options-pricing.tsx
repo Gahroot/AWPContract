@@ -109,7 +109,7 @@ export function StepOptionsPricing() {
             value={paymentMethod}
             onValueChange={(v) => setValue("paymentMethod", v, { shouldDirty: true })}
           >
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
               {FORM_OPTIONS.paymentMethod.map((pm) => (
                 <label
                   key={pm.value}
@@ -136,7 +136,7 @@ export function StepOptionsPricing() {
               setValue("downPaymentMethod", v, { shouldDirty: true })
             }
           >
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
               {FORM_OPTIONS.downPaymentMethod.map((pm) => (
                 <label
                   key={pm.value}

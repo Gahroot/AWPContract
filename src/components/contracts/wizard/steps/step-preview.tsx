@@ -134,7 +134,8 @@ export function StepPreview() {
               <p className="text-sm text-muted-foreground">No line items added.</p>
             ) : (
               <div className="border rounded-md overflow-hidden">
-                <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-muted/50 text-xs font-semibold">
+                {/* Desktop header */}
+                <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 bg-muted/50 text-xs font-semibold">
                   <div className="col-span-3">Location/Type</div>
                   <div className="col-span-2 text-center">Qty</div>
                   <div className="col-span-2 text-center">Size</div>
@@ -142,25 +143,38 @@ export function StepPreview() {
                   <div className="col-span-3 text-right">Price</div>
                 </div>
                 {lineItems.map((item, index) => (
-                  <div
-                    key={item.id || index}
-                    className="grid grid-cols-12 gap-2 px-4 py-2 text-sm border-t"
-                  >
-                    <div className="col-span-3">
-                      <div className="font-medium">{item.location || `Item ${index + 1}`}</div>
-                      <div className="text-xs text-muted-foreground">{item.function || item.type}</div>
+                  <div key={item.id || index} className="border-t">
+                    {/* Mobile stacked layout */}
+                    <div className="md:hidden px-4 py-2 text-sm space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{item.location || `Item ${index + 1}`}</span>
+                        <span className="font-medium">{formatCurrency(item.price)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{item.function || item.type}</span>
+                        <span>Qty: {item.qty}</span>
+                        <span>{item.width}&quot; &times; {item.height}&quot;</span>
+                        <Badge variant="outline" className="text-[10px]">{item.color}</Badge>
+                      </div>
                     </div>
-                    <div className="col-span-2 text-center flex items-center justify-center">
-                      {item.qty}
-                    </div>
-                    <div className="col-span-2 text-center flex items-center justify-center text-xs">
-                      {item.width}&quot; &times; {item.height}&quot;
-                    </div>
-                    <div className="col-span-2 text-center flex items-center justify-center text-xs">
-                      <Badge variant="outline">{item.color}</Badge>
-                    </div>
-                    <div className="col-span-3 text-right flex items-center justify-end font-medium">
-                      {formatCurrency(item.price)}
+                    {/* Desktop grid layout */}
+                    <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2 text-sm">
+                      <div className="col-span-3">
+                        <div className="font-medium">{item.location || `Item ${index + 1}`}</div>
+                        <div className="text-xs text-muted-foreground">{item.function || item.type}</div>
+                      </div>
+                      <div className="col-span-2 text-center flex items-center justify-center">
+                        {item.qty}
+                      </div>
+                      <div className="col-span-2 text-center flex items-center justify-center text-xs">
+                        {item.width}&quot; &times; {item.height}&quot;
+                      </div>
+                      <div className="col-span-2 text-center flex items-center justify-center text-xs">
+                        <Badge variant="outline">{item.color}</Badge>
+                      </div>
+                      <div className="col-span-3 text-right flex items-center justify-end font-medium">
+                        {formatCurrency(item.price)}
+                      </div>
                     </div>
                   </div>
                 ))}

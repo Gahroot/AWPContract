@@ -522,28 +522,30 @@ function LineItemCard({
           <span className="text-sm font-semibold mr-2">
             {formatCurrency(price || 0)}
           </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            disabled={isFirst}
-            onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-            aria-label="Move up"
-          >
-            <ArrowUp className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            disabled={isLast}
-            onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-            aria-label="Move down"
-          >
-            <ArrowDown className="h-3.5 w-3.5" />
-          </Button>
+          <div className="hidden md:flex gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={isFirst}
+              onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+              aria-label="Move up"
+            >
+              <ArrowUp className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              disabled={isLast}
+              onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+              aria-label="Move down"
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+            </Button>
+          </div>
           <Button
             type="button"
             variant="ghost"

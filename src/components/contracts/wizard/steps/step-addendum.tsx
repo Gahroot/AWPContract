@@ -352,7 +352,7 @@ export function StepAddendum() {
             </div>
             <div>
               <Label className="mb-2 block">Application Surface Quantities</Label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {[
                   { id: "brickApplicationQty", label: "Brick" },
                   { id: "stuccoApplicationQty", label: "Stucco" },

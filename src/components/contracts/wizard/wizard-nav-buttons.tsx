@@ -34,7 +34,7 @@ export function WizardNavButtons({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        "flex items-center justify-between border-t bg-white px-4 py-3",
+        "sticky bottom-0 z-10 flex items-center justify-between border-t bg-white px-4 py-3",
         className
       )}
     >
@@ -44,7 +44,7 @@ export function WizardNavButtons({
         variant="outline"
         onClick={onPrevious}
         disabled={!canGoPrevious}
-        className="gap-1"
+        className="gap-1 min-h-[44px]"
       >
         <ChevronLeft className="h-4 w-4" />
         {previousLabel}
@@ -55,7 +55,7 @@ export function WizardNavButtons({
         type={isLastStep ? "submit" : "button"}
         onClick={isLastStep ? undefined : onNext}
         disabled={submitting}
-        className="gap-1 bg-awp-blue hover:bg-awp-blue/90"
+        className="gap-1 min-h-[44px] bg-awp-blue hover:bg-awp-blue/90"
       >
         {submitting ? (
           <>

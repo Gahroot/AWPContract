@@ -113,8 +113,7 @@ export function SignaturePad({
               ref={canvasRef}
               penColor="black"
               canvasProps={{
-                className: "w-full h-32 touch-none",
-                style: { width: "100%", height: "128px" },
+                className: "w-full h-48 sm:h-32 touch-none",
               }}
               onEnd={handleDrawEnd}
             />

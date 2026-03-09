@@ -19,7 +19,7 @@ export function WizardStepIndicator({
 }: WizardStepIndicatorProps) {
   return (
     <nav aria-label="Wizard progress" className="w-full">
-      <ol className="flex items-center justify-center gap-2">
+      <ol className="flex items-center justify-center gap-1 sm:gap-2">
         {steps.map((step, index) => {
           const isActive = index === currentIndex;
           const isCompleted = completedSteps.has(index) && !isActive;
@@ -32,7 +32,7 @@ export function WizardStepIndicator({
                 onClick={() => isClickable && onStepClick(index)}
                 disabled={!isClickable && !isActive}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-sm font-medium border-2 flex items-center gap-1.5 transition-colors",
+                  "rounded-full px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium border-2 flex items-center gap-1.5 transition-colors",
                   isActive
                     ? "bg-blue-600 border-blue-600 text-white"
                     : isCompleted
@@ -48,7 +48,7 @@ export function WizardStepIndicator({
                 ) : (
                   <span>{index + 1}</span>
                 )}
-                <span>{step.label}</span>
+                <span className="hidden sm:inline">{step.label}</span>
               </button>
             </li>
           );

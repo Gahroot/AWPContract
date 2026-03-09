@@ -141,7 +141,7 @@ export function StepSign({ submitting = false, onSubmit }: StepSignProps) {
             <CardTitle className="text-base">Signature Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-6 text-sm">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <div
                   className={`w-3 h-3 rounded-full ${
